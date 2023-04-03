@@ -10,7 +10,7 @@ exports.updateProfile = async (req, res) => {
     const userId = req.userId;
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { firstName, lastName, bio, isProfileSetUp: true },
+      { firstName, lastName, bio },
       { new: true, omitUndefined: true }
     ).select('-password');
 

@@ -22,15 +22,11 @@ const userSchema = new mongoose.Schema({
   },
   avatar: {
     type: String,
-    default: '', // Вы можете установить URL-адрес изображения по умолчанию здесь
+    default: '',
   },
   bio: {
     type: String,
     default: '',
-  },
-  isProfileSetUp: {
-    type: Boolean,
-    default: false,
   },
 });
 
