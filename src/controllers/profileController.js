@@ -57,6 +57,7 @@ exports.updateProfile = async (req, res) => {
 // };
 
 // Добавление аватарки
+
 exports.updateAvatar = async (req, res) => {
     try {
       if (!req.file) {
@@ -80,6 +81,7 @@ exports.updateAvatar = async (req, res) => {
   };
   
   // Удаление аватарки
+
   exports.deleteAvatar = async (req, res) => {
     try {
       const userId = req.userId;
@@ -118,4 +120,27 @@ exports.updateAvatar = async (req, res) => {
       console.error(error);
       res.status(500).json({ message: 'Server error' });
     }
+  };
+
+  // Обновление настройки доступности
+
+  exports.updateAvailability = async (req, res) => {
+    console.log('Sending availability update request:', req.body.availability);
+    const { availability } = req.body;
+  
+    if (!availability) {
+      return res.status(400).json({ message: 'Availability is required' });
+    }
+  
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      { availability },
+      { new: true }
+    );
+  
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+  
+    res.status(200).json({ message: 'Availability updated successfully' });
   };
