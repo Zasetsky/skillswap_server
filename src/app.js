@@ -5,6 +5,8 @@ const bodyParser = require('body-parser');
 const authRoutes = require('./routes/authRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const skillRoutes = require('./routes/skillRoutes');
+const matchingRoutes = require('./routes/matchingRoutes');
+
 
 const cors = require('cors');
 const path = require('path');
@@ -35,6 +37,8 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/skills', skillRoutes);
+app.use('/api/matching', matchingRoutes);
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
