@@ -49,12 +49,17 @@ exports.login = async (req, res) => {
     const payload = { userId: user.id };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    res.status(200).json({ token });
+    // Удаляем пароль из объекта пользователя перед отправкой
+    const userWithoutPassword = user.toObject();
+    delete userWithoutPassword.password;
+
+    res.status(200).json({ token, user: userWithoutPassword }); // И токен у юзера не отправлять!!!
   } catch (error) {
     console.error('Error during login:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
+
 
 // Автовход
 
