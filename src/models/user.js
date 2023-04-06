@@ -47,6 +47,37 @@ const userSchema = new mongoose.Schema({
       skill: String,
     },
   ],
+  swapRequests: [
+    {
+      senderData: {
+        id: String,
+        avatar: String,
+        firstName: String,
+        lastName: String,
+        bio: String,
+        skillsToLearn: Array,
+        skillsToTeach: Array,
+      },
+      receiverData: {
+        id: String,
+        avatar: String,
+        firstName: String,
+        lastName: String,
+        bio: String,
+        skillsToLearn: Array,
+        skillsToTeach: Array,
+      },
+      status: {
+        type: String,
+        enum: ['pending', 'accepted', 'rejected'],
+        default: 'pending',
+      },
+      createdAt: {
+        type: Date,
+        default: Date.now,
+      },
+    },
+  ],
   availability: {
     type: String,
     default: '',

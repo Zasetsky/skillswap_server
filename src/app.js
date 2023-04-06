@@ -6,6 +6,7 @@ const authRoutes = require('./routes/authRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const skillRoutes = require('./routes/skillRoutes');
 const matchingRoutes = require('./routes/matchingRoutes');
+const swapRequestRoutes = require('./routes/swapRequestRoutes');
 
 
 const cors = require('cors');
@@ -38,6 +39,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/skills', skillRoutes);
 app.use('/api/matching', matchingRoutes);
+app.use('/api/swap-requests', swapRequestRoutes);
 
 
 const PORT = process.env.PORT || 3000;

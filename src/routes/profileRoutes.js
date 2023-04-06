@@ -10,7 +10,7 @@ const uploadMiddleware = require('../middlewares/uploadMiddleware');
 router.put('/update', authMiddleware, profileController.updateProfile);
 
 // Запрос информации о пользователе
-// router.get('/current', authMiddleware, profileController.getProfile);
+router.get('/current/:userId', profileController.getProfile);
 
 // Обновление аватара
 router.post('/avatar', authMiddleware, uploadMiddleware.single('avatar'), profileController.updateAvatar);

@@ -39,12 +39,12 @@ exports.getProfile = async (req, res) => {
     res.json({
       user: {
         id: user._id,
-        email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
         bio: user.bio,
         avatar: user.avatar,
-        strongSkills: user.strongSkills,
+        skillsToTeach: user.skillsToTeach,
+        skillsToLearn: user.skillsToLearn,
       },
     });
 
