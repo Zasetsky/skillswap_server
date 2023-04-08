@@ -37,6 +37,7 @@ const userSchema = new mongoose.Schema({
       category: String,
       subCategory: String,
       skill: String,
+      isInProcess: Boolean
     },
   ],
   skillsToTeach: [
@@ -45,6 +46,7 @@ const userSchema = new mongoose.Schema({
       category: String,
       subCategory: String,
       skill: String,
+      isInProcess: Boolean
     },
   ],
   swapRequests: [
@@ -69,7 +71,7 @@ const userSchema = new mongoose.Schema({
       },
       status: {
         type: String,
-        enum: ['pending', 'accepted', 'rejected'],
+        enum: ['pending', 'accepted', 'active', 'rejected', 'finished'],
         default: 'pending',
       },
       createdAt: {

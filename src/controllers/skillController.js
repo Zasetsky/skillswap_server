@@ -13,17 +13,18 @@ exports.addSkillsToLearn = async (req, res) => {
     // console.log('Received skillsToLearn:', skillsToAdd);
 
     for (const skillToAdd of skillsToAdd) {
-      const availableSkill = await AvailableSkill.findOne({ skill: skillToAdd.skill });
+      const availableSkill = await AvailableSkill.findById(skillToAdd._id);
 
       if (!availableSkill) {
         return res.status(404).json({ message: 'Skill not found' });
       }
 
       // Проверьте, есть ли навык в skillsToLearn
-      const skillInLearnList = user.skillsToLearn.find((skill) => skill.skill === availableSkill.skill);
+      const skillInLearnList = user.skillsToLearn.find((skill) => skill._id.toString() === availableSkill._id.toString());
 
       if (!skillInLearnList) {
         user.skillsToLearn.push({
+          _id: availableSkill._id,
           theme: availableSkill.theme,
           category: availableSkill.category,
           subCategory: availableSkill.subCategory,
@@ -41,6 +42,7 @@ exports.addSkillsToLearn = async (req, res) => {
 };
 
 
+
 exports.addSkillsToTeach = async (req, res) => {
   try {
     const user = await User.findById(req.userId);
@@ -50,17 +52,18 @@ exports.addSkillsToTeach = async (req, res) => {
     // console.log('Received skillsToTeach:', skillsToAdd);
 
     for (const skillToAdd of skillsToAdd) {
-      const availableSkill = await AvailableSkill.findOne({ skill: skillToAdd.skill });
+      const availableSkill = await AvailableSkill.findById(skillToAdd._id);
 
       if (!availableSkill) {
         return res.status(404).json({ message: 'Skill not found' });
       }
 
       // Проверьте, есть ли навык в skillsToTeach
-      const skillInTeachList = user.skillsToTeach.find((skill) => skill.skill === availableSkill.skill);
+      const skillInTeachList = user.skillsToTeach.find((skill) => skill._id.toString() === availableSkill._id.toString());
 
       if (!skillInTeachList) {
         user.skillsToTeach.push({
+          _id: availableSkill._id,
           theme: availableSkill.theme,
           category: availableSkill.category,
           subCategory: availableSkill.subCategory,
@@ -76,6 +79,7 @@ exports.addSkillsToTeach = async (req, res) => {
     res.status(500).json({ message: 'Server error', error });
   }
 };
+
 
 // Удаление скиллов
 
