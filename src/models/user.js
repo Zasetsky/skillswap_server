@@ -51,6 +51,10 @@ const userSchema = new mongoose.Schema({
   ],
   swapRequests: [
     {
+      _id: {
+        type: mongoose.Schema.Types.ObjectId,
+        default: mongoose.Types.ObjectId,
+      },
       senderData: {
         id: String,
         avatar: String,
