@@ -13,7 +13,7 @@ exports.sendSwapRequest = async (req, res) => {
   
       // Функция проверки на существующий запрос на обмен от отправителя к получателю
       const existingRequest = (request) => {
-        return request.receiverData.id.toString() === receiverId;
+        return request.receiverData.id === receiverId;
       };
   
       // Проверка на существующий запрос на обмен

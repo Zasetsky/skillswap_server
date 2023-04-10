@@ -14,10 +14,6 @@ router.delete('/remove-skill-to-learn', authMiddleware, skillController.removeSk
 router.delete('/remove-skill-to-teach', authMiddleware, skillController.removeSkillToTeach);
 // запрос доступных скиллов
 router.get('/available-skills', skillController.getAllAvailableSkills);
-// Переключение "в процессе" слабых скилов
-router.post('/toggle-skill-to-learn-is-in-process', authMiddleware, skillController.toggleSkillToLearnIsInProcess);
-// Переключение "в процессе" сильных скилов
-router.post('/toggle-skill-to-teach-is-in-process', authMiddleware, skillController.toggleSkillToTeachIsInProcess);
 
 
 module.exports = router;

@@ -37,7 +37,6 @@ const userSchema = new mongoose.Schema({
       category: String,
       subCategory: String,
       skill: String,
-      isInProcess: Boolean
     },
   ],
   skillsToTeach: [
@@ -46,7 +45,6 @@ const userSchema = new mongoose.Schema({
       category: String,
       subCategory: String,
       skill: String,
-      isInProcess: Boolean
     },
   ],
   swapRequests: [
