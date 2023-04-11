@@ -120,7 +120,36 @@ exports.acceptSwapRequest = async (req, res) => {
   }
 };
 
-  
+exports.rejectSwapRequest = async (req, res) => {
+  try {
+    const swapRequestId = req.params.swapRequestId;
+
+    if (!swapRequestId) {
+      return res.status(400).json({ error: "Необходимо указать _id swapRequests" });
+    }
+
+    // Находим всех пользователей с swapRequests с указанным _id
+    const users = await User.find({ "swapRequests._id": swapRequestId });
+
+    // Проходимся по каждому пользователю и меняем статус swapRequests на "rejected"
+    await Promise.all(
+      users.map(async (user) => {
+        user.swapRequests.forEach((swapRequest) => {
+          if (swapRequest._id.toString() === swapRequestId) {
+            swapRequest.status = "rejected";
+          }
+        });
+
+        await user.save();
+      })
+    );
+
+    res.status(200).json({ message: "Статус swapRequests успешно изменен на 'rejected'" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Произошла ошибка при обработке запроса" });
+  }
+};
   
 exports.deleteSwapRequest = async (req, res) => {
   try {
