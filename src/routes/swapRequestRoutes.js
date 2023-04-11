@@ -5,7 +5,7 @@ const authMiddleware = require('../middlewares/authMiddleware');
 const router = express.Router();
 
 router.post('/send', authMiddleware, swapRequestController.sendSwapRequest);
-router.put('/:requestId', authMiddleware, swapRequestController.updateSwapRequest);
+router.post('/accept', authMiddleware, swapRequestController.acceptSwapRequest);
 router.delete('/:requestId', authMiddleware, swapRequestController.deleteSwapRequest);
 
 module.exports = router;

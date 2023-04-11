@@ -10,9 +10,16 @@ exports.findMatchingUsers = async (req, res) => {
       return res.status(400).json({ message: 'Invalid skill ID' });
     }
 
+    // Получить текущего пользователя и его skillsToTeach
+    const currentUser = await User.findById(currentUserId).select('skillsToTeach');
+    const currentUserSkillsToTeachIds = currentUser.skillsToTeach.map(skill => skill._id.toString());
+
+    // Искать пользователей, у которых есть skillsToTeach для полученного навыка
+    // и skillsToLearn, которые у текущего пользователя есть в skillsToTeach
     const matchingUsers = await User.find({
       _id: { $ne: currentUserId },
       'skillsToTeach._id': skillId,
+      'skillsToLearn._id': { $in: currentUserSkillsToTeachIds }
     }).select('-password -email');
 
     if (matchingUsers.length === 0) {
@@ -26,3 +33,4 @@ exports.findMatchingUsers = async (req, res) => {
     res.status(500).json({ message: 'Server error', error });
   }
 };
+
