@@ -19,8 +19,12 @@ const chatSchema = new mongoose.Schema({
         ref: 'User',
         required: true,
       },
-      content: {
+      type: {
         type: String,
+        default: 'text',
+      },
+      content: {
+        type: mongoose.Schema.Types.Mixed,
         required: true,
       },
       createdAt: {
@@ -30,21 +34,37 @@ const chatSchema = new mongoose.Schema({
     },
   ],
   deal: {
+    zoomParticipants: [
+      {
+        type: String,
+      },
+    ],
+    zoomMeetingId: {
+      type: String,
+      default: null,
+    },
     status: {
       type: String,
-      enum: ["not_started", "pending", "confirmed", "edited"],
+      enum: ["not_started", "pending", "confirmed", "finished", "cancelled", "in_progress", "completed"],
       default: "not_started",
     },
     sender: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
-    receiver: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
     form: {
-      // Поля формы
+      meetingDate: {
+        type: String,
+        required: false,
+      },
+      meetingTime: {
+        type: String,
+        required: false,
+      },
+      meetingDuration: {
+        type: String,
+        required: false,
+      },
     },
   },
 });
