@@ -1,13 +1,13 @@
 const express = require('express');
 const connectDB = require('./config/db');
 
-const authRoutes = require('./routes/authRoutes');
-const profileRoutes = require('./routes/profileRoutes');
-const skillRoutes = require('./routes/skillRoutes');
-const matchingRoutes = require('./routes/matchingRoutes');
-const swapRequestRoutes = require('./routes/swapRequestRoutes');
-const chatRoutes = require('./routes/chatRoutes');
-const zoomRouter = require('./routes/zoom');
+const authRoutes = require('./routes/authRoutes')
+const profileRoutes = require('./routes/profileRoutes')
+const skillRoutes = require('./routes/skillRoutes')
+const matchingRoutes = require('./routes/matchingRoutes')
+const swapRequestRoutes = require('./routes/swapRequestRoutes')
+const chatRoutes = require('./routes/chatRoutes')
+const zoomRouter = require('./routes/zoom')
 
 const cors = require('cors');
 const path = require('path');

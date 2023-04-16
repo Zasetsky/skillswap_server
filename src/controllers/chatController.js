@@ -27,22 +27,31 @@ async function createZoomMeeting(meetingDate, meetingTime, meetingDuration, user
     'Authorization': `Bearer ${token}`,
   };
 
-  const meetingDateTime = new Date(meetingDate + 'T' + meetingTime);
+  const meetingDateTime = new Date(meetingDate + 'T' + meetingTime + '+03:00');
 
   const data = {
     topic: 'SkillSwap Meeting',
     type: 2,
     start_time: meetingDateTime.toISOString(),
     duration: meetingDuration,
-    timezone: 'GMT',
-    password: 'your_meeting_password',
+    timezone: 'Europe/Moscow',
+    password: generatePassword(),
   };
 
   try {
-    const response = await axios.post(url, data, { headers });
+    const response = await axios.post(url, data,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    console.log("Zoom meeting created:", response.data.join_url);
     return response.data;
   } catch (error) {
-    console.error('Error creating Zoom meeting:', error);
+    console.error("Error creating Zoom meeting:", error);
+    console.error("Error stack:", error.stack);
     return null;
   }
 }
@@ -81,6 +90,17 @@ async function updateZoomMeeting(meetingId, zoomToken, updateData) {
   }
 }
 
+function generatePassword() {
+  const length = 8;
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * charset.length);
+    password += charset[randomIndex];
+  }
+  return password;
+}
+
 exports.confirmDeal = async (req, res) => {
   try {
     const chatId = req.params.chatId;
@@ -99,21 +119,39 @@ exports.confirmDeal = async (req, res) => {
       zoomUserId,
       zoomToken
     );
+
+    if (!zoomMeeting) {
+      return res.status(500).json({ error: "Error creating Zoom meeting" });
+    }
     
     // Save the zoomMeetingId to the chat deal
     chat.deal.zoomMeetingId = zoomMeeting.id;
+
+    // Ensure the content field is not empty or undefined
+    chat.messages.forEach((message) => {
+      if (!message.content) {
+        message.content = '';
+      }
+    });
+
     await chat.save();
-    
-    res.status(200).json({ message: "Deal confirmed", zoomMeeting: {
-      join_url: zoomMeeting.join_url,
-      password: 'your_meeting_password',
+    console.log(zoomMeeting.join_url);
+    res.status(200).json({ 
+      message: "Deal confirmed", 
+      zoomMeeting: {
+        join_url: zoomMeeting.join_url,
+        password: zoomMeeting.password,
       },
+      deal: chat.deal,
     });
   } catch (error) {
     console.error("Error confirming deal:", error);
-    res.status(500).json({ error: "Error confirming deal" });
+    console.error("Error stack:", error.stack);
+    res.status(500).json({ error: `Error confirming deal: ${error.message}` });
   }
 };
+
+
 
 
 exports.checkMeetingAttendance = async (req, res) => {
@@ -192,7 +230,7 @@ exports.checkMeetingAttendance = async (req, res) => {
 };
 
 
-
+// ПЕРВАЯ ВЕРСИЯ ЧАТА!!!!!!!!!!!!!
 
 exports.createChat = async (req, res) => {
   const { senderId, swapRequestId } = req.body;
@@ -225,15 +263,20 @@ exports.createChat = async (req, res) => {
 };
 
 exports.sendMessage = async (req, res) => {
-  const { chatId, content } = req.body;
-  
+  const { chatId, type, content } = req.body;
+
+  // Check if content is present
+  if (!content) {
+    return res.status(400).json({ message: 'Content is required' });
+  }
+
   try {
     // Создаем новое сообщение
     const newMessage = {
       _id: new mongoose.Types.ObjectId(),
       sender: req.userId,
-      type: content.type || 'text',
-      content: content.type === 'deal_proposal' ? content : content,
+      type: type,
+      content: content
     };
     console.log(newMessage)
     // Обновляем чат, добавляя новое сообщение
@@ -249,6 +292,7 @@ exports.sendMessage = async (req, res) => {
     res.status(500).json({ message: 'Error sending message', error });
   }
 };
+
 
 exports.getMessages = async (req, res) => {
   const { chatId } = req.params;
