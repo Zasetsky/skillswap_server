@@ -1,6 +1,5 @@
 const express = require('express');
 const connectDB = require('./config/db');
-const bodyParser = require('body-parser');
 
 const authRoutes = require('./routes/authRoutes');
 const profileRoutes = require('./routes/profileRoutes');
@@ -8,6 +7,7 @@ const skillRoutes = require('./routes/skillRoutes');
 const matchingRoutes = require('./routes/matchingRoutes');
 const swapRequestRoutes = require('./routes/swapRequestRoutes');
 const chatRoutes = require('./routes/chatRoutes');
+const zoomRouter = require('./routes/zoom');
 
 const cors = require('cors');
 const path = require('path');
@@ -15,18 +15,23 @@ const http = require('http');
 
 const app = express();
 const server = http.createServer(app);
-const io = require('socket.io')(server); 
+const io = require('socket.io')(server, {
+  cors: {
+    origin: 'http://localhost:8080',
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+  }
+});
 
 connectDB();
-
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 app.use(cors({
   origin: 'http://localhost:8080',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Access-Control-Allow-Credentials'],
 }));
 
 app.use(function (err, req, res, next) {
@@ -44,17 +49,22 @@ app.use('/api/skills', skillRoutes);
 app.use('/api/matching', matchingRoutes);
 app.use('/api/swap-requests', swapRequestRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/zoom', zoomRouter);
 
 // WebSocket
 io.on('connection', (socket) => {
-  console.log('a user connected');
+  console.log('Client connected:', socket.id);
 
   socket.on('disconnect', () => {
-    console.log('user disconnected');
+    console.log('Client disconnected:', socket.id);
   });
 
   socket.on('chat message', (msg) => {
     io.emit('chat message', msg);
+  });
+
+  socket.on('openAuthWindow', (authUrl) => {
+    socket.emit('openAuthWindow', authUrl);
   });
 });
 

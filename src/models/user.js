@@ -2,6 +2,14 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
+  karma: {
+    type: Number,
+    default: 100,
+  },
+  zoomId: {
+    type: String,
+    default: '',
+  },
   firstName: {
     type: String,
     default: '',

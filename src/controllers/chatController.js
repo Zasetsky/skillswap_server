@@ -1,4 +1,5 @@
 const Chat = require('../models/chat');
+const User = require('../models/user');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
@@ -114,6 +115,7 @@ exports.confirmDeal = async (req, res) => {
   }
 };
 
+
 exports.checkMeetingAttendance = async (req, res) => {
   try {
     const chatId = req.params.chatId;
@@ -139,7 +141,7 @@ exports.checkMeetingAttendance = async (req, res) => {
       const meetingStartTime = new Date(chat.deal.form.meetingDate + 'T' + chat.deal.form.meetingTime);
 
       return (
-        chat.deal.zoomParticipants.includes(participant.user_id) &&
+        chat.deal.zoomParticipants.some(zoomPart => zoomPart.zoomId === participant.user_id) &&
         joinTime <= new Date(meetingStartTime.getTime() + checkInTime * 60000) &&
         duration >= meetingDuration - checkInTime
       );
@@ -148,23 +150,41 @@ exports.checkMeetingAttendance = async (req, res) => {
     const allParticipantsAttended =
       attendedParticipants.length === chat.deal.zoomParticipants.length;
 
-    if (allParticipantsAttended && chat.deal.status === "confirmed") {
-      const updateData = {
-        start_time: chat.deal.form2.meetingDate + 'T' + chat.deal.form2.meetingTime,
-        duration: chat.deal.form.meetingDuration,
-      };
+    if (allParticipantsAttended) {
+      if (chat.deal.status === "confirmed") {
+        const updateData = {
+          start_time: chat.deal.form2.meetingDate + 'T' + chat.deal.form2.meetingTime,
+          duration: chat.deal.form.meetingDuration,
+        };
 
-      const updatedMeeting = await updateZoomMeeting(chat.deal.zoomMeetingId, zoomToken, updateData);
+        const updatedMeeting = await updateZoomMeeting(chat.deal.zoomMeetingId, zoomToken, updateData);
 
-      if (updatedMeeting) {
-        chat.deal.status = "updated";
-      } else {
-        return res.status(500).json({ error: "Error updating Zoom meeting" });
+        if (updatedMeeting) {
+          chat.deal.status = "updated";
+        } else {
+          return res.status(500).json({ error: "Error updating Zoom meeting" });
+        }
+      } else if (chat.deal.status === "updated") {
+        chat.deal.status = "completed";
+      }
+    } else {
+      chat.deal.status = "cancelled";
+      const pointsToDeduct = 10; // You can change this value based on your requirements
+
+      for (const zoomParticipant of chat.deal.zoomParticipants) {
+        if (!attendedParticipants.some(attended => attended.user_id === zoomParticipant.zoomId)) {
+          const user = await User.findById(zoomParticipant.userId);
+          if (user) {
+            user.karma -= pointsToDeduct;
+            await user.save();
+          }
+        }
       }
     }
 
     await chat.save();
     res.status(200).json({ allParticipantsAttended, status: chat.deal.status });
+
   } catch (error) {
     console.error("Error checking meeting attendance:", error);
     res.status(500).json({ error: "Error checking meeting attendance" });
@@ -172,8 +192,10 @@ exports.checkMeetingAttendance = async (req, res) => {
 };
 
 
+
+
 exports.createChat = async (req, res) => {
-  const { senderId, skillId } = req.body;
+  const { senderId, swapRequestId } = req.body;
   const currentUserId = req.userId
 
   try {
@@ -187,7 +209,7 @@ exports.createChat = async (req, res) => {
 
     const newChat = await Chat.create({
       participants: [currentUserId, senderId],
-      skillId: skillId,
+      swapRequestId: swapRequestId,
       messages: [
         {
           sender: senderId,
@@ -204,16 +226,16 @@ exports.createChat = async (req, res) => {
 
 exports.sendMessage = async (req, res) => {
   const { chatId, content } = req.body;
-
+  
   try {
     // Создаем новое сообщение
     const newMessage = {
       _id: new mongoose.Types.ObjectId(),
       sender: req.userId,
       type: content.type || 'text',
-      content: content.type === 'deal_proposal' ? content : content.text,
+      content: content.type === 'deal_proposal' ? content : content,
     };
-
+    console.log(newMessage)
     // Обновляем чат, добавляя новое сообщение
     await Chat.findByIdAndUpdate(
       chatId,
@@ -246,24 +268,27 @@ exports.getMessages = async (req, res) => {
 
 exports.updateDeal = async (req, res) => {
   try {
-    const chatId = req.params.chatId;
-    const { status, senderId, formData } = req.body;
-    console.log(formData);
-    const chat = await Chat.findById(chatId);
-    if (!chat) {
-      return res.status(404).json({ error: "Chat not found" });
-    }
+      const chatId = req.params.chatId;
+      const { status, senderId, formData1, formData2 } = req.body;
 
-    chat.deal.status = status;
-    chat.deal.sender = senderId;
-    chat.deal.form.meetingDate = formData.meetingDate;
-    chat.deal.form.meetingTime = formData.meetingTime;
-    chat.deal.form.meetingDuration = formData.meetingDuration;
-    
-    await chat.save();
-    res.status(200).json(chat.deal);
+      const chat = await Chat.findById(chatId);
+      if (!chat) {
+          return res.status(404).json({ error: "Chat not found" });
+      }
+
+      chat.deal.status = status;
+      chat.deal.sender = senderId;
+      chat.deal.form.meetingDate = formData1.meetingDate;
+      chat.deal.form.meetingTime = formData1.meetingTime;
+      chat.deal.form.meetingDuration = formData1.meetingDuration;
+      chat.deal.form2.meetingDate = formData2.meetingDate;
+      chat.deal.form2.meetingTime = formData2.meetingTime;
+      chat.deal.form2.meetingDuration = formData2.meetingDuration;
+
+      await chat.save();
+      res.status(200).json(chat.deal);
   } catch (error) {
-    console.error("Error updating deal:", error);
-    res.status(500).json({ error: "Error updating deal" });
+      console.error("Error updating deal:", error);
+      res.status(500).json({ error: "Error updating deal" });
   }
 };

@@ -8,7 +8,7 @@ const chatSchema = new mongoose.Schema({
       required: true,
     },
   ],
-  skillId: {
+  swapRequestId: {
     type: String,
     required: true,
   },
@@ -36,8 +36,13 @@ const chatSchema = new mongoose.Schema({
   deal: {
     zoomParticipants: [
       {
-        type: String,
-      },
+        userId: {
+          type: String,
+        },
+        zoomId: {
+          type: String
+        }
+      }
     ],
     zoomMeetingId: {
       type: String,
@@ -53,6 +58,20 @@ const chatSchema = new mongoose.Schema({
       ref: "User",
     },
     form: {
+      meetingDate: {
+        type: String,
+        required: false,
+      },
+      meetingTime: {
+        type: String,
+        required: false,
+      },
+      meetingDuration: {
+        type: String,
+        required: false,
+      },
+    },
+    form2: {
       meetingDate: {
         type: String,
         required: false,
