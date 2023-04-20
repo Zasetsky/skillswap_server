@@ -1,17 +1,18 @@
 const express = require('express');
 const connectDB = require('./config/db');
 
-const authRoutes = require('./routes/authRoutes')
-const profileRoutes = require('./routes/profileRoutes')
-const skillRoutes = require('./routes/skillRoutes')
-const matchingRoutes = require('./routes/matchingRoutes')
-const swapRequestRoutes = require('./routes/swapRequestRoutes')
-const chatRoutes = require('./routes/chatRoutes')
-const zoomRouter = require('./routes/zoom')
+const authRoutes = require('./routes/authRoutes');
+const profileRoutes = require('./routes/profileRoutes');
+const skillRoutes = require('./routes/skillRoutes');
+const matchingRoutes = require('./routes/matchingRoutes');
+const swapRequestController = require('./controllers/swapRequestController');
+const socketChatController = require('./controllers/socketChatController');
+const chatRoutes = require('./routes/chatRoutes');
 
 const cors = require('cors');
 const path = require('path');
 const http = require('http');
+const Chat = require('./models/chat');
 
 const app = express();
 const server = http.createServer(app);
@@ -47,28 +48,14 @@ app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/skills', skillRoutes);
 app.use('/api/matching', matchingRoutes);
-app.use('/api/swap-requests', swapRequestRoutes);
 app.use('/api/chat', chatRoutes);
-app.use('/api/zoom', zoomRouter);
 
 // WebSocket
-io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
-
-  socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
-  });
-
-  socket.on('chat message', (msg) => {
-    io.emit('chat message', msg);
-  });
-
-  socket.on('openAuthWindow', (authUrl) => {
-    socket.emit('openAuthWindow', authUrl);
-  });
-});
-
+socketChatController(io);
+swapRequestController(io);
+  
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+  

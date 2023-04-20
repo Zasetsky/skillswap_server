@@ -1,198 +1,119 @@
 const mongoose = require('mongoose');
 const User = require('../models/user');
+const SwapRequest = require('../models/swapRequest');
 
+const swapRequestController = (io) => {
+  io.on("connection", (socket) => {
+    console.log("User connected");
 
-exports.sendSwapRequest = async (req, res) => {
-  try {
-    const senderId = req.userId;
-    const { receiverId, senderData, receiverData } = req.body;
+    // Отправка запроса на обмен
+    socket.on("sendSwapRequest", async (data) => {
+      try {
+        const { receiverId, senderId, senderData, receiverData } = data;
 
-    // Получение данных отправителя и получателя
-    const sender = await User.findById(senderId);
-    const receiver = await User.findById(receiverId);
-
-    // Функция проверки на существующий запрос на обмен от отправителя к получателю
-    const existingRequest = (request) => {
-      return request.receiverData.id === receiverId;
-    };
-
-    // Проверка на существующий запрос на обмен
-    if (sender.swapRequests.some(existingRequest)) {
-      return res
-        .status(400)
-        .send({ error: "Swap request already exists" });
-    }
-
-    // Создаем новый объект запроса на обмен для получателя с новым ObjectId
-    const newSwapRequestForReceiver = {
-      senderData,
-      status: "pending",
-      _id: new mongoose.Types.ObjectId(),
-    };
-
-    // Сохраняем запрос на обмен в массиве swapRequests получателя
-    await User.findByIdAndUpdate(receiverId, {
-      $push: { swapRequests: newSwapRequestForReceiver },
-    });
-
-    // Добавляем новый _id в объект запроса на обмен отправителя
-    const newSwapRequestForSender = {
-      receiverData,
-      status: "pending",
-      _id: newSwapRequestForReceiver._id,
-    };
-
-    // Сохраняем запрос на обмен в массиве swapRequests отправителя
-    await User.findByIdAndUpdate(senderId, {
-      $push: { swapRequests: newSwapRequestForSender },
-    });
-
-    res.status(200).send({ message: "Swap request sent successfully" });
-  } catch (error) {
-    console.error("Error sending swap request:", error);
-    res.status(500).send({ error: "Error sending swap request" });
-  }
-};
-  
-  
-  
-exports.acceptSwapRequest = async (req, res) => {
-  try {
-    const requestId = req.body.requestId;
-    const userId = req.body.userId;
-    const currentUserId = req.body.currentUserId;
-    const skillToTeach = req.body.skillToTeach;
-
-    // Найти текущего пользователя и обновить его swapRequests
-    const currentUser = await User.findById(currentUserId);
-
-    if (!currentUser) {
-      return res.status(404).json({ message: 'Current user not found' });
-    }
-
-    const currentSwapRequestIndex = currentUser.swapRequests.findIndex(
-      (request) => request._id.toString() === requestId
-    );
-
-    if (currentSwapRequestIndex === -1) {
-      return res.status(404).json({ message: 'Swap request not found for the current user' });
-    }
-
-    currentUser.swapRequests[currentSwapRequestIndex].senderData.skillsToTeach =
-      currentUser.swapRequests[currentSwapRequestIndex].senderData.skillsToTeach.filter(
-        (skill) => skill._id.toString() === skillToTeach._id.toString()
-      );
-    await currentUser.save();
-
-    // Обновить статус всех swapRequests с заданным requestId
-    const updatedSwapRequestsResult = await User.updateMany(
-      { 'swapRequests._id': requestId },
-      { $set: { 'swapRequests.$.status': 'accepted' } }
-    );
-
-    if (updatedSwapRequestsResult.nModified === 0) {
-      return res.status(404).json({ message: 'No swap requests found to update' });
-    }
-
-    // Найти пользователя с заданным ID
-    const user = await User.findById(userId);
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // Найти нужный swapRequests и добавить skillToTeach к swapRequests.receiverData.skillsToTeach
-    const swapRequestIndex = user.swapRequests.findIndex(
-      (request) => request._id.toString() === requestId
-    );
-
-    if (swapRequestIndex === -1) {
-      return res.status(404).json({ message: 'Swap request not found for the user' });
-    }
-
-    user.swapRequests[swapRequestIndex].receiverData.skillsToTeach.push(skillToTeach);
-    await user.save();
-
-    res.status(200).json({ message: 'Swap request accepted' });
-  } catch (error) {
-    console.error('Error in acceptSwapRequest:', error);
-    res.status(500).json({ message: 'Server error', error });
-  }
-};
-
-exports.rejectSwapRequest = async (req, res) => {
-  try {
-    const swapRequestId = req.params.swapRequestId;
-
-    if (!swapRequestId) {
-      return res.status(400).json({ error: "Необходимо указать _id swapRequests" });
-    }
-
-    // Находим всех пользователей с swapRequests с указанным _id
-    const users = await User.find({ "swapRequests._id": swapRequestId });
-
-    // Проходимся по каждому пользователю и меняем статус swapRequests на "rejected"
-    await Promise.all(
-      users.map(async (user) => {
-        user.swapRequests.forEach((swapRequest) => {
-          if (swapRequest._id.toString() === swapRequestId) {
-            swapRequest.status = "rejected";
-          }
+        // Создаем новый объект запроса на обмен для получателя с новым ObjectId
+        const newSwapRequest = new SwapRequest({
+          senderId,
+          receiverId,
+          senderData,
+          receiverData,
+          status: "pending",
         });
 
-        await user.save();
-      })
-    );
+        await newSwapRequest.save();
 
-    res.status(200).json({ message: "Статус swapRequests успешно изменен на 'rejected'" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Произошла ошибка при обработке запроса" });
-  }
-};
-  
-exports.deleteSwapRequest = async (req, res) => {
-  try {
-      const { requestId  } = req.params;
-
-      // console.log("req.params:", req.params);
-      console.log("Удаляем запрос на обмен с ID:", requestId );
-
-      // Находим всех пользователей с указанным requestId  в их массиве swapRequests
-      const usersWithSwapRequest = await User.find({
-          "swapRequests._id": new mongoose.Types.ObjectId(requestId ),
-      });
-
-      
-      // console.log('usersWithSwapRequest:', usersWithSwapRequest);
-      // console.log('usersWithSwapRequest.length:', usersWithSwapRequest.length);
-
-      if (usersWithSwapRequest.length === 0) {
-          console.log("Запрос на обмен не найден");
-          res.status(404).send({ error: "Swap request not found" });
-          return;
+        // Отправляем уведомление об успешной отправке запроса на обмен
+        socket.emit("swapRequestSent", { status: 200, message: "Swap request sent successfully" });
+      } catch (error) {
+        console.error("Error sending swap request:", error);
+        socket.emit("swapRequestError", { status: 500, error: "Error sending swap request" });
       }
+    });
 
-      // Удаляем запрос на обмен с указанным requestId у всех пользователей
-      const updatedUsers = await User.updateMany(
-          { "swapRequests._id": new mongoose.Types.ObjectId(requestId) },
-          { $pull: { swapRequests: { _id: new mongoose.Types.ObjectId(requestId) } } }
-      ).exec();
+    // Принять запрос на обмен
+    socket.on("acceptSwapRequest", async (data) => {
+      try {
+        const { requestId, senderId, currentUserId, skillToTeach } = data;
 
-      // console.log('updatedUsers:', updatedUsers);
+        // Найти запрос на обмен с заданным requestId и обновить статус на "accepted"
+        const swapRequest = await SwapRequest.findById(requestId);
+        if (!swapRequest) {
+          return socket.emit("swapRequestError", { status: 404, message: 'Swap request not found' });
+        }
+        swapRequest.status = 'accepted';
+        await swapRequest.save();
 
-      if (updatedUsers.matchedCount === usersWithSwapRequest.length) {
-          console.log("Запрос на обмен успешно удалён у пользователей");
-          res.status(204).send(); // Отправляем статус 204 No Content без тела сообщения
-      } else {
+        socket.emit("swapRequestAccepted", { status: 200, message: 'Swap request accepted' });
+      } catch (error) {
+        console.error('Error in acceptSwapRequest:', error);
+        socket.emit("acceptSwapRequestError", { status: 500, message: 'Server error', error });
+      }
+    });
+
+    // Отклонить запрос на обмен
+    socket.on("rejectSwapRequest", async (data) => {
+      try {
+        const { swapRequestId } = data;
+
+        if (!swapRequestId) {
+          return socket.emit("rejectSwapRequestError", { status: 400, error: "Необходимо указать _id swapRequests" });
+        }
+
+        const swapRequest = await SwapRequest.findById(swapRequestId);
+        if (!swapRequest) {
+          return socket.emit("rejectSwapRequestError", { status: 404, error: "Swap request not found" });
+        }
+
+        swapRequest.status = "rejected";
+        await swapRequest.save();
+
+        socket.emit("swapRequestRejected", { status: 200, message: "Статус swapRequests успешно изменен на 'rejected'" });
+      } catch (error) {
+        console.error(error);
+        socket.emit("rejectSwapRequestError", { status: 500, error: "Произошла ошибка при обработке запроса" });
+      }
+    });
+
+    // Удалить запрос на обмен
+    socket.on("deleteSwapRequest", async (data) => {
+      try {
+        const { requestId } = data;
+        console.log('hi!', requestId);
+        console.log("Удаляем запрос на обмен с ID:", requestId);
+
+        const deletedSwapRequest = await SwapRequest.findByIdAndDelete(requestId);
+
+        if (deletedSwapRequest) {
+          console.log("Запрос на обмен успешно удалён");
+          socket.emit("swapRequestDeleted"); // Отправляем статус 204 No Content без тела сообщения
+        } else {
           console.log("Ошибка при удалении запроса на обмен");
-          res.status(500).send({ error: "Error deleting swap request" });
+          socket.emit("deleteSwapRequestError", { status: 500, error: "Error deleting swap request" });
+        }
+      } catch (error) {
+        console.error("Ошибка при удалении запроса на обмен:", error);
+        socket.emit("deleteSwapRequestError", { status: 500, error: "Error deleting swap request" });
       }
-  } catch (error) {
-      console.error("Ошибка при удалении запроса на обмен:", error);
-      res.status(500).send({ error: "Error deleting swap request" });
-  }
-};
-  
+    });
 
+    // Получить все swapRequests
+    socket.on("getAllSwapRequests", async () => {
+      try {
+        const swapRequests = await SwapRequest.find();
+
+        console.log("Получены все запросы на обмен");
+        socket.emit("allSwapRequests", swapRequests);
+      } catch (error) {
+        console.error("Ошибка при получении всех запросов на обмен:", error);
+        socket.emit("getAllSwapRequestsError", { status: 500, error: "Error fetching all swap requests" });
+      }
+    });
+
+    socket.on("disconnect", () => {
+      console.log("User disconnected");
+    });
+  });
+};
+
+module.exports = swapRequestController;
 

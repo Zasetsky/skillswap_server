@@ -34,20 +34,6 @@ const chatSchema = new mongoose.Schema({
     },
   ],
   deal: {
-    zoomParticipants: [
-      {
-        userId: {
-          type: String,
-        },
-        zoomId: {
-          type: String
-        }
-      }
-    ],
-    zoomMeetingId: {
-      type: String,
-      default: null,
-    },
     status: {
       type: String,
       enum: ["not_started", "pending", "confirmed", "finished", "cancelled", "in_progress", "completed"],

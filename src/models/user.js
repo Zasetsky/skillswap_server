@@ -6,10 +6,6 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 100,
   },
-  zoomId: {
-    type: String,
-    default: '',
-  },
   firstName: {
     type: String,
     default: '',
@@ -53,41 +49,6 @@ const userSchema = new mongoose.Schema({
       category: String,
       subCategory: String,
       skill: String,
-    },
-  ],
-  swapRequests: [
-    {
-      _id: {
-        type: mongoose.Schema.Types.ObjectId,
-        default: mongoose.Types.ObjectId,
-      },
-      senderData: {
-        id: String,
-        avatar: String,
-        firstName: String,
-        lastName: String,
-        bio: String,
-        skillsToLearn: Array,
-        skillsToTeach: Array,
-      },
-      receiverData: {
-        id: String,
-        avatar: String,
-        firstName: String,
-        lastName: String,
-        bio: String,
-        skillsToLearn: Array,
-        skillsToTeach: Array,
-      },
-      status: {
-        type: String,
-        enum: ['pending', 'accepted', 'active', 'rejected', 'dealRejected', 'finished'],
-        default: 'pending',
-      },
-      createdAt: {
-        type: Date,
-        default: Date.now,
-      },
     },
   ],
   availability: {
