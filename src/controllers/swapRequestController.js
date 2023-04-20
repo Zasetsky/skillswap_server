@@ -33,10 +33,10 @@ const swapRequestController = (io) => {
     // Принять запрос на обмен
     socket.on("acceptSwapRequest", async (data) => {
       try {
-        const { requestId, senderId, currentUserId, skillToTeach } = data;
+        const { swapRequestId } = data;
 
-        // Найти запрос на обмен с заданным requestId и обновить статус на "accepted"
-        const swapRequest = await SwapRequest.findById(requestId);
+        // Найти запрос на обмен с заданным swapRequestId и обновить статус на "accepted"
+        const swapRequest = await SwapRequest.findById(swapRequestId);
         if (!swapRequest) {
           return socket.emit("swapRequestError", { status: 404, message: 'Swap request not found' });
         }
