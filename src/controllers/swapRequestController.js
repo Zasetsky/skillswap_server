@@ -1,10 +1,8 @@
-const mongoose = require('mongoose');
-const User = require('../models/user');
 const SwapRequest = require('../models/swapRequest');
 
 const swapRequestController = (io) => {
   io.on("connection", (socket) => {
-    console.log("User connected");
+    console.log("User connected to swap requests");
 
     // Отправка запроса на обмен
     socket.on("sendSwapRequest", async (data) => {
@@ -120,7 +118,7 @@ const swapRequestController = (io) => {
     });
 
     socket.on("disconnect", () => {
-      console.log("User disconnected");
+      console.log("User disconnected from swap requests");
     });
   });
 };

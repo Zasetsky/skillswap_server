@@ -5,14 +5,13 @@ const authRoutes = require('./routes/authRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const skillRoutes = require('./routes/skillRoutes');
 const matchingRoutes = require('./routes/matchingRoutes');
+
 const swapRequestController = require('./controllers/swapRequestController');
-const socketChatController = require('./controllers/socketChatController');
-const chatRoutes = require('./routes/chatRoutes');
+const chatController = require('./controllers/chatController');
 
 const cors = require('cors');
 const path = require('path');
 const http = require('http');
-const Chat = require('./models/chat');
 
 const app = express();
 const server = http.createServer(app);
@@ -48,10 +47,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/skills', skillRoutes);
 app.use('/api/matching', matchingRoutes);
-app.use('/api/chat', chatRoutes);
 
 // WebSocket
-socketChatController(io);
+chatController(io);
 swapRequestController(io);
   
 const PORT = process.env.PORT || 3000;
