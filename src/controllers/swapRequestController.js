@@ -33,22 +33,32 @@ const swapRequestController = (io) => {
     // Принять запрос на обмен
     socket.on("acceptSwapRequest", async (data) => {
       try {
-        const { swapRequestId } = data;
-
+        const { swapRequestId, chosenSkillToSwap } = data;
+    
         // Найти запрос на обмен с заданным swapRequestId и обновить статус на "accepted"
         const swapRequest = await SwapRequest.findById(swapRequestId);
         if (!swapRequest) {
           return socket.emit("swapRequestError", { status: 404, message: 'Swap request not found' });
         }
         swapRequest.status = 'accepted';
+    
+        // Обновить skillsToTeach у получателя
+        swapRequest.receiverData.skillsToTeach = [chosenSkillToSwap];
+    
+        // Обновить skillsToTeach у отправителя, оставив только chosenSkillToSwap
+        swapRequest.senderData.skillsToTeach = swapRequest.senderData.skillsToTeach.filter(skill => {
+          return skill._id.toString() === chosenSkillToSwap._id.toString();
+        });
+    
         await swapRequest.save();
-
+    
         socket.emit("swapRequestAccepted", { status: 200, message: 'Swap request accepted' });
       } catch (error) {
         console.error('Error in acceptSwapRequest:', error);
         socket.emit("acceptSwapRequestError", { status: 500, message: 'Server error', error });
       }
     });
+    
 
     // Отклонить запрос на обмен
     socket.on("rejectSwapRequest", async (data) => {
