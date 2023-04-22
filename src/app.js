@@ -8,6 +8,7 @@ const matchingRoutes = require('./routes/matchingRoutes');
 
 const swapRequestController = require('./controllers/swapRequestController');
 const chatController = require('./controllers/chatController');
+const dealController = require('./controllers/dealController');
 
 const cors = require('cors');
 const path = require('path');
@@ -51,6 +52,7 @@ app.use('/api/matching', matchingRoutes);
 // WebSocket
 chatController(io);
 swapRequestController(io);
+dealController(io);
   
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {

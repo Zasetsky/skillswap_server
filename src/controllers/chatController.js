@@ -1,8 +1,32 @@
 const Chat = require('../models/chat');
 const mongoose = require('mongoose');
+const authMiddleware = require('../middlewares/authMiddleware');
+
+
+const socketAuthMiddleware = (socket, next) => {
+  // Создаем объект запроса и ответа для authMiddleware
+  const req = {
+    headers: {
+      authorization: socket.handshake.headers.authorization
+    }
+  };
+  const res = {
+    status: (code) => ({ json: (message) => ({ code, message }) }),
+  };
+
+  authMiddleware(req, res, (err) => {
+    if (err) {
+      return next(new Error('Unauthorized'));
+    }
+
+    // Сохраняем userId в объекте сокета
+    socket.userId = req.userId;
+    next();
+  });
+};
 
 const socketChatController  = (io) => {
-    io.on("connection", (socket) => {
+  io.use(socketAuthMiddleware).on("connection", (socket) => {
       console.log("User connected to chat");
 
       // Создание чата
@@ -85,38 +109,12 @@ const socketChatController  = (io) => {
       // Запрос всех чатов
       socket.on("fetchAllChats", async () => {
         try {
-          const chats = await Chat.find();
+          const currentUserId = socket.userId;
+          const chats = await Chat.find({ participants: { $in: [currentUserId] } });
           socket.emit("allChats", chats);
         } catch (error) {
           console.error('Error getting all chats:', error);
           socket.emit("error", { message: 'Error getting all chats' });
-        }
-      });
-  
-  
-      // Обновление Сделки
-      socket.on("updateDeal", async (data) => {
-        const { chatId, status, senderId, formData1, formData2 } = data;
-  
-        try {
-          const chat = await Chat.findById(chatId);
-          if (!chat) {
-            return socket.emit("error", { message: "Chat not found" });
-          }
-  
-          chat.deal.status = status;
-          chat.deal.sender = senderId;
-          chat.deal.form.meetingDate = formData1.meetingDate;
-          chat.deal.form.meetingTime = formData1.meetingTime;
-          chat.deal.form.meetingDuration = formData1.meetingDuration;
-          chat.deal.form2.meetingDate = formData2.meetingDate;
-          chat.deal.form2.meetingTime = formData2.meetingTime;
-          chat.deal.form2.meetingDuration = formData2.meetingDuration;
-  
-          await chat.save();
-          socket.emit("deal", chat.deal);
-        } catch (error) {
-          socket.emit("error", { message: "Error updating deal" });
         }
       });
   

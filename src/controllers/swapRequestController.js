@@ -1,7 +1,30 @@
 const SwapRequest = require('../models/swapRequest');
+const authMiddleware = require('../middlewares/authMiddleware');
+
+const socketAuthMiddleware = (socket, next) => {
+  // Создаем объект запроса и ответа для authMiddleware
+  const req = {
+    headers: {
+      authorization: socket.handshake.headers.authorization
+    }
+  };
+  const res = {
+    status: (code) => ({ json: (message) => ({ code, message }) }),
+  };
+
+  authMiddleware(req, res, (err) => {
+    if (err) {
+      return next(new Error('Unauthorized'));
+    }
+
+    // Сохраняем userId в объекте сокета
+    socket.userId = req.userId;
+    next();
+  });
+};
 
 const swapRequestController = (io) => {
-  io.on("connection", (socket) => {
+  io.use(socketAuthMiddleware).on("connection", (socket) => {
     console.log("User connected to swap requests");
 
     // Отправка запроса на обмен
@@ -107,15 +130,16 @@ const swapRequestController = (io) => {
     // Получить все swapRequests
     socket.on("getAllSwapRequests", async () => {
       try {
-        const swapRequests = await SwapRequest.find();
-
-        console.log("Получены все запросы на обмен");
+        const currentUserId = socket.userId;
+        const swapRequests = await SwapRequest.find({ $or: [{ senderId: currentUserId }, { receiverId: currentUserId }] });
+    
+        console.log("Получены все запросы на обмен для текущего пользователя");
         socket.emit("allSwapRequests", swapRequests);
       } catch (error) {
         console.error("Ошибка при получении всех запросов на обмен:", error);
         socket.emit("getAllSwapRequestsError", { status: 500, error: "Error fetching all swap requests" });
       }
-    });
+    });    
 
     socket.on("disconnect", () => {
       console.log("User disconnected from swap requests");
