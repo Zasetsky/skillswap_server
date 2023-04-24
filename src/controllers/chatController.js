@@ -31,19 +31,17 @@ const socketChatController  = (io) => {
 
       // Создание чата
       socket.on("createChat", async (data) => {
-        const { currentUserId, senderId, swapRequestId } = data;
+        const { receiverId, senderId, swapRequestId } = data;
   
         try {
-          const existingChat = await Chat.findOne({
-            participants: { $all: [currentUserId, senderId] },
-          });
+          const existingChat = await Chat.findOne({ swapRequestId });
   
           if (existingChat) {
             return socket.emit("chat", existingChat);
           }
   
           const newChat = await Chat.create({
-            participants: [currentUserId, senderId],
+            participants: [receiverId, senderId],
             swapRequestId: swapRequestId,
             messages: [
               {

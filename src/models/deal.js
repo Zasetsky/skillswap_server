@@ -18,7 +18,7 @@ const dealSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["not_started", "pending", "confirmed", "finished", "cancelled", "in_progress", "completed"],
+        enum: ["not_started", "pending", "pending_update", "confirmed", "cancelled", "in_progress", "completed"],
         default: "not_started",
     },
     sender: {
@@ -53,6 +53,36 @@ const dealSchema = new mongoose.Schema({
         required: false,
         },
     },
+    update: {
+        form: {
+          meetingDate: {
+            type: String,
+            required: false,
+          },
+          meetingTime: {
+            type: String,
+            required: false,
+          },
+          meetingDuration: {
+            type: String,
+            required: false,
+          },
+        },
+        form2: {
+          meetingDate: {
+            type: String,
+            required: false,
+          },
+          meetingTime: {
+            type: String,
+            required: false,
+          },
+          meetingDuration: {
+            type: String,
+            required: false,
+          },
+        },
+    },  
 });
 
 module.exports = mongoose.model('Deal', dealSchema);

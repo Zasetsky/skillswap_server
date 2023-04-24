@@ -1,6 +1,7 @@
 const Deal = require('../models/deal');
 const authMiddleware = require('../middlewares/authMiddleware');
 
+
 const socketAuthMiddleware = (socket, next) => {
   const req = {
     headers: {
@@ -20,6 +21,7 @@ const socketAuthMiddleware = (socket, next) => {
     next();
   });
 };
+
 
 const socketChatController = (io) => {
   io.use(socketAuthMiddleware).on("connection", (socket) => {
@@ -50,7 +52,6 @@ const socketChatController = (io) => {
           socket.emit("error", { message: "Error creating or fetching deal" });
       }
     });
-  
       
 
     // Обновление Сделки
@@ -65,12 +66,29 @@ const socketChatController = (io) => {
     
         deal.status = status;
         deal.sender = senderId;
-        deal.form.meetingDate = formData1.meetingDate;
-        deal.form.meetingTime = formData1.meetingTime;
-        deal.form.meetingDuration = formData1.meetingDuration;
-        deal.form2.meetingDate = formData2.meetingDate;
-        deal.form2.meetingTime = formData2.meetingTime;
-        deal.form2.meetingDuration = formData2.meetingDuration;
+    
+        if (status === 'pending') {
+          deal.form = formData1;
+          deal.form2 = formData2;
+        } else if (status === 'pending_update') {
+          const form1Matches = Object.keys(formData1).every(field => formData1[field] === deal.form[field]);
+          const form2Matches = Object.keys(formData2).every(field => formData2[field] === deal.form2[field]);
+    
+          if (!form1Matches || !form2Matches) {
+            console.log('before', deal.form);
+            if (!deal.update.form.meetingDate && !deal.update.form.meetingTime && !deal.update.form.meetingDuration &&
+                !deal.update.form2.meetingDate && !deal.update.form2.meetingTime && !deal.update.form2.meetingDuration) {
+              deal.update = { form: {}, form2: {} };
+              console.log('call');
+            } else {
+              deal.form = deal.update.form;
+              deal.form2 = deal.update.form2;
+              console.log('after', deal.form);
+            }
+            deal.update.form = formData1;
+            deal.update.form2 = formData2;
+          }
+        }
     
         await deal.save();
         socket.emit("deal", deal);
@@ -78,7 +96,7 @@ const socketChatController = (io) => {
         socket.emit("error", { message: "Error updating deal" });
       }
     });
-    
+
 
     // Запрос всех сделок пользователя
     socket.on("getAllDeals", async () => {
@@ -89,6 +107,7 @@ const socketChatController = (io) => {
           socket.emit("error", { message: "Error fetching all deals" });
         }
       });
+
 
     // Запрос текущей сделки
     socket.on("getCurrentDeal", async (data) => {
@@ -104,6 +123,24 @@ const socketChatController = (io) => {
         socket.emit("currentDeal", deal);
       } catch (error) {
         socket.emit("error", { message: "Error fetching current deal" });
+      }
+    });
+
+    socket.on("confirmDeal", async (data) => {
+      const { dealId } = data;
+    
+      try {
+        const deal = await Deal.findById(dealId);
+        if (!deal) {
+          return socket.emit("error", { message: "Deal not found" });
+        }
+    
+        deal.status = "confirmed";
+    
+        await deal.save();
+        socket.emit("dealConfirmed", deal);
+      } catch (error) {
+        socket.emit("error", { message: "Error confirming deal" });
       }
     });
 
