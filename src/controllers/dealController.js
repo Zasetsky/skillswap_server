@@ -79,12 +79,12 @@ const socketChatController = (io) => {
             if (!deal.update.form.meetingDate && !deal.update.form.meetingTime && !deal.update.form.meetingDuration &&
                 !deal.update.form2.meetingDate && !deal.update.form2.meetingTime && !deal.update.form2.meetingDuration) {
               deal.update = { form: {}, form2: {} };
-              console.log('call');
             } else {
               deal.form = deal.update.form;
               deal.form2 = deal.update.form2;
-              console.log('after', deal.form);
+              console.log('call');
             }
+            console.log('after', deal.form);
             deal.update.form = formData1;
             deal.update.form2 = formData2;
           }
