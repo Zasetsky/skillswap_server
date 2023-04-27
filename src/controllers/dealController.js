@@ -23,7 +23,7 @@ const socketAuthMiddleware = (socket, next) => {
 };
 
 
-const socketChatController = (io) => {
+const DealController = (io) => {
   io.use(socketAuthMiddleware).on("connection", (socket) => {
     console.log("User connected to deal");
 
@@ -56,7 +56,7 @@ const socketChatController = (io) => {
 
     // Обновление Сделки
     socket.on("updateDeal", async (data) => {
-      const { dealId, status, senderId, formData1, formData2 } = data;
+      const { dealId, status, formData1, formData2 } = data;
     
       try {
         const deal = await Deal.findById(dealId);
@@ -65,7 +65,7 @@ const socketChatController = (io) => {
         }
     
         deal.status = status;
-        deal.sender = senderId;
+        deal.sender = socket.userId;
     
         if (status === 'pending') {
           deal.form = formData1;
@@ -144,10 +144,67 @@ const socketChatController = (io) => {
       }
     });
 
+    // Запрос отмены
+    socket.on("requestCancellation", async (data) => {
+      const { dealId, reason, timestamp } = data;
+
+      try {
+        const deal = await Deal.findById(dealId);
+        if (!deal) {
+          return socket.emit("error", { message: "Сделка не найдена" });
+        }
+
+        deal.sender = socket.userId;
+        deal.cancellation = { reason, status: "pending", timestamp};
+
+        await deal.save();
+        socket.emit("cancellationRequested", deal);
+      } catch (error) {
+        socket.emit("error", { message: "Ошибка при запросе отмены" });
+      }
+    });
+
+    // Подтверждение отмены
+    socket.on("approveCancellation", async (data) => {
+      const { dealId } = data;
+
+      try {
+        const deal = await Deal.findById(dealId);
+        if (!deal) {
+          return socket.emit("error", { message: "Сделка не найдена" });
+        }
+
+        deal.status = "cancelled";
+        deal.cancellation.status = "approved";
+        await deal.save();
+        socket.emit("cancellationApproved", deal);
+      } catch (error) {
+        socket.emit("error", { message: "Ошибка при подтверждении отмены" });
+      }
+    });
+
+    // Отклонение отмены
+    socket.on("rejectCancellation", async (data) => {
+      const { dealId } = data;
+
+      try {
+        const deal = await Deal.findById(dealId);
+        if (!deal) {
+          return socket.emit("error", { message: "Сделка не найдена" });
+        }
+
+        deal.cancellation.status = "rejected";
+        await deal.save();
+        socket.emit("cancellationRejected", deal);
+      } catch (error) {
+        socket.emit("error", { message: "Ошибка при отклонении отмены" });
+      }
+    });
+
     socket.on("disconnect", () => {
       console.log("User disconnected from deal");
     });
   });
 };
 
-module.exports = socketChatController;
+module.exports = DealController;
