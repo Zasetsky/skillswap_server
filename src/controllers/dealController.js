@@ -56,7 +56,7 @@ const DealController = (io) => {
 
     // Обновление Сделки
     socket.on("updateDeal", async (data) => {
-      const { dealId, status, formData1, formData2 } = data;
+      const { dealId, formData1, formData2 } = data;
     
       try {
         const deal = await Deal.findById(dealId);
@@ -64,29 +64,29 @@ const DealController = (io) => {
           return socket.emit("error", { message: "Deal not found" });
         }
     
-        deal.status = status;
         deal.sender = socket.userId;
     
-        if (status === 'pending') {
+        if (deal.status === "not_started" || deal.status === "in_progress") {
+          deal.status = "pending";
           deal.form = formData1;
           deal.form2 = formData2;
-        } else if (status === 'pending_update') {
+        } else if (deal.status === "pending" || deal.status === "pending_update") {
+          deal.status = "pending_update";
           const form1Matches = Object.keys(formData1).every(field => formData1[field] === deal.form[field]);
           const form2Matches = Object.keys(formData2).every(field => formData2[field] === deal.form2[field]);
     
           if (!form1Matches || !form2Matches) {
-            console.log('before', deal.form);
             if (!deal.update.form.meetingDate && !deal.update.form.meetingTime && !deal.update.form.meetingDuration &&
                 !deal.update.form2.meetingDate && !deal.update.form2.meetingTime && !deal.update.form2.meetingDuration) {
-              deal.update = { form: {}, form2: {} };
+              deal.update.form = formData1;
+              deal.update.form2 = formData2;
             } else {
               deal.form = deal.update.form;
               deal.form2 = deal.update.form2;
-              console.log('call');
+
+              deal.update.form = formData1;
+              deal.update.form2 = formData2;
             }
-            console.log('after', deal.form);
-            deal.update.form = formData1;
-            deal.update.form2 = formData2;
           }
         }
     
@@ -96,7 +96,63 @@ const DealController = (io) => {
         socket.emit("error", { message: "Error updating deal" });
       }
     });
+    
 
+    // Предложение переноса Сделки
+    socket.on("proposeReschedule", async (data) => {
+      const { dealId, rescheduleFormData1, rescheduleFormData2 } = data;
+
+      try {
+        const deal = await Deal.findById(dealId);
+        if (!deal) {
+          return socket.emit("error", { message: "Deal not found" });
+        }
+
+        deal.sender = socket.userId;
+
+        const rescheduleForm1Matches = deal.reschedule.form && Object.keys(rescheduleFormData1).every(field => rescheduleFormData1[field] === deal.reschedule.form[field]);
+        const rescheduleForm2Matches = deal.reschedule.form2 && Object.keys(rescheduleFormData2).every(field => rescheduleFormData2[field] === deal.reschedule.form2[field]);
+
+        if (deal.status === 'confirmed') {
+          deal.status = 'reschedule_offer';
+
+          deal.reschedule.form = rescheduleFormData1;
+          deal.reschedule.form2 = rescheduleFormData2;
+        } else if (deal.status === 'reschedule_offer') {
+          if (!rescheduleForm1Matches || !rescheduleForm2Matches) {
+            if (deal.update.form.meetingDate && deal.update.form.meetingTime && deal.update.form.meetingDuration &&
+                deal.update.form2.meetingDate && deal.update.form2.meetingTime && deal.update.form2.meetingDuration) {
+              deal.form = deal.reschedule.form;
+              deal.form2 = deal.reschedule.form2;
+
+              deal.reschedule.form = rescheduleFormData1;
+              deal.reschedule.form2 = rescheduleFormData2;
+            } else {
+              deal.status = 'reschedule_offer_update';
+
+              deal.update.form = deal.reschedule.form;
+              deal.update.form2 = deal.reschedule.form2;
+
+              deal.reschedule.form = rescheduleFormData1;
+              deal.reschedule.form2 = rescheduleFormData2;
+            }
+          } 
+        } else {
+          if (!rescheduleForm1Matches || !rescheduleForm2Matches) {
+            deal.update.form = deal.reschedule.form;
+            deal.update.form2 = deal.reschedule.form2;
+
+            deal.reschedule.form = rescheduleFormData1;
+            deal.reschedule.form2 = rescheduleFormData2;
+          }  
+        }
+
+        await deal.save();
+        socket.emit("deal", deal);
+      } catch (error) {
+        socket.emit("error", { message: "Error proposing reschedule" });
+      }
+    });
 
     // Запрос всех сделок пользователя
     socket.on("getAllDeals", async () => {
