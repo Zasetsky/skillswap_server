@@ -12,7 +12,7 @@ function setupCronJobs() {
   });
 
   // Проверка и обновление сделок каждый час
-  cron.schedule('* * * * *', () => {
+  cron.schedule('0 * * * *', () => {
     console.log('Checking and updating deals');
     checkAndUpdateDeals().catch((error) => {
       console.error('Error while checking and updating deals:', error);

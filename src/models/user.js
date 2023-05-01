@@ -41,6 +41,7 @@ const userSchema = new mongoose.Schema({
       category: String,
       subCategory: String,
       skill: String,
+      isActive: Boolean,
     },
   ],
   skillsToTeach: [
@@ -49,8 +50,30 @@ const userSchema = new mongoose.Schema({
       category: String,
       subCategory: String,
       skill: String,
+      rating: {
+        type: Number,
+        default: 0,
+      },
     },
   ],
+  reliabilityRating: {
+    type: Number,
+    default: 5,
+    min: 0,
+    max: 5,
+  },
+  engagementRating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5,
+  },
+  totalSkillsRating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5,
+  },
   availability: {
     type: String,
     default: '',

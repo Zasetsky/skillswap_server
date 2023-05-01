@@ -14,11 +14,7 @@ async function checkAndUpdateDeals() {
     });
 
     for (const deal of deals) {
-      if (
-          deal.status === 'confirmed' ||
-          deal.status === 'reschedule_offer' ||
-          deal.status === 'reschedule_offer_update'
-        ) {
+      if (deal.status === 'confirmed') {
 
         if (
             deal.update.form.meetingDate &&
@@ -36,6 +32,18 @@ async function checkAndUpdateDeals() {
             await Deal.updateOne({ _id: deal._id }, { status: 'half_completed' });
           }
 
+        }
+
+      } else if (deal.status === 'reschedule_offer') {
+
+        if (isDealCompleted(deal.update.form)) {
+          await Deal.updateOne({ _id: deal._id }, { status: 'half_completed' });
+        }
+
+      } else if (deal.status === 'reschedule_offer_update') {
+
+        if (isDealCompleted(deal.form)) {
+          await Deal.updateOne({ _id: deal._id }, { status: 'half_completed' });
         }
 
       } else if (deal.status === 'half_completed') {
