@@ -18,7 +18,20 @@ const dealSchema = new mongoose.Schema({
   },
   status: {
       type: String,
-      enum: ["not_started", "pending", "pending_update", "confirmed", "reschedule_offer", "reschedule_offer_update", "cancelled", "in_progress", "completed"],
+      enum: [ 
+        "not_started",
+        "pending",
+        "pending_update",
+        "confirmed",
+        "reschedule_offer",
+        "reschedule_offer_update",
+        "confirmed_reschedule",
+        "cancelled",
+        "in_progress",
+        "half_completed",
+        "half_completed_confirmed_reschedule",
+        "completed",
+      ],
       default: "not_started",
   },
   cancellation: {

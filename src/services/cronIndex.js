@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const checkPendingCancellations = require('./cancellationRequestsChecker');
+const checkAndUpdateDeals = require('./dealObserver');
 
 function setupCronJobs() {
   // Проверка запросов на отмену каждый час
@@ -7,6 +8,14 @@ function setupCronJobs() {
     console.log('Checking pending cancellation requests');
     checkPendingCancellations().catch((error) => {
       console.error('Error while checking pending cancellation requests:', error);
+    });
+  });
+
+  // Проверка и обновление сделок каждый час
+  cron.schedule('* * * * *', () => {
+    console.log('Checking and updating deals');
+    checkAndUpdateDeals().catch((error) => {
+      console.error('Error while checking and updating deals:', error);
     });
   });
 

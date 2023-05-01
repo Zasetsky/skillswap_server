@@ -1,18 +1,93 @@
-const cron = require("node-cron");
-const { checkDeals } = require("./dealChecker");
+const Deal = require('../models/deal');
 
-// Запускаем задачу каждый час
-const scheduledTask = cron.schedule("0 * * * *", async () => {
+async function checkAndUpdateDeals() {
   try {
-    await checkDeals();
+    const deals = await Deal.find({
+      $or: [
+        { status: 'confirmed' },
+        { status: 'reschedule_offer' },
+        { status: 'reschedule_offer_update' },
+        { status: 'half_completed' },
+        { status: 'confirmed_reschedule' },
+        { status: 'half_completed_confirmed_reschedule' },
+      ],
+    });
+
+    for (const deal of deals) {
+      if (
+          deal.status === 'confirmed' ||
+          deal.status === 'reschedule_offer' ||
+          deal.status === 'reschedule_offer_update'
+        ) {
+
+        if (
+            deal.update.form.meetingDate &&
+            deal.update.form.meetingTime &&
+            deal.update.form.meetingDuration
+          ) {
+
+          if (isDealCompleted(deal.update.form)) {
+            await Deal.updateOne({ _id: deal._id }, { status: 'half_completed' });
+          }
+
+        } else {
+
+          if (isDealCompleted(deal.form)) {
+            await Deal.updateOne({ _id: deal._id }, { status: 'half_completed' });
+          }
+
+        }
+
+      } else if (deal.status === 'half_completed') {
+
+        if (
+            deal.update.form2.meetingDate &&
+            deal.update.form2.meetingTime &&
+            deal.update.form2.meetingDuration
+          ) {
+
+          if (isDealCompleted(deal.update.form2)) {
+            await Deal.updateOne({ _id: deal._id }, { status: 'completed' });
+          }
+
+        } else {
+
+          if (isDealCompleted(deal.form2)) {
+            await Deal.updateOne({ _id: deal._id }, { status: 'completed' });
+          }
+        }
+
+      } else if (deal.status === 'confirmed_reschedule') {
+
+        if (isDealCompleted(deal.reschedule.form)) {
+          await Deal.updateOne({ _id: deal._id }, { status: 'half_completed' });
+        }
+
+      } else if (deal.status === 'half_completed_confirmed_reschedule') {
+
+        if (isDealCompleted(deal.reschedule.form2)) {
+          await Deal.updateOne({ _id: deal._id }, { status: 'completed' });
+        }
+
+      }
+    }
   } catch (error) {
-    console.error("Error checking deals:", error);
+    console.error('Ошибка при проверке и обновлении сделок:', error);
   }
-});
+}
 
-// Запускаем наблюдателя
-const startDealObserver = () => scheduledTask.start();
+function isDealCompleted(form) {
+  const meetingDate = new Date(form.meetingDate);
+  const meetingTime = form.meetingTime.split(':');
+  const meetingDuration = parseInt(form.meetingDuration, 10);
 
-module.exports = {
-    startDealObserver,
-};
+  meetingDate.setHours(meetingDate.getHours() + parseInt(meetingTime[0], 10));
+  meetingDate.setMinutes(meetingDate.getMinutes() + parseInt(meetingTime[1], 10));
+  meetingDate.setMinutes(meetingDate.getMinutes() + meetingDuration);
+
+  const now = new Date();
+
+  return now >= meetingDate;
+}
+
+module.exports = checkAndUpdateDeals;
