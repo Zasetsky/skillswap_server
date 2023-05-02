@@ -69,6 +69,10 @@ const dealSchema = new mongoose.Schema({
     type: String,
     required: false,
     },
+    isCompleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   form2: {
     meetingDate: {
@@ -82,6 +86,10 @@ const dealSchema = new mongoose.Schema({
     meetingDuration: {
     type: String,
     required: false,
+    },
+    isCompleted: {
+      type: Boolean,
+      default: false,
     },
   },
   update: {
@@ -98,6 +106,10 @@ const dealSchema = new mongoose.Schema({
         type: String,
         required: false,
       },
+      isCompleted: {
+        type: Boolean,
+        default: false,
+      },
     },
     form2: {
       meetingDate: {
@@ -111,6 +123,10 @@ const dealSchema = new mongoose.Schema({
       meetingDuration: {
         type: String,
         required: false,
+      },
+      isCompleted: {
+        type: Boolean,
+        default: false,
       },
     },
   },
