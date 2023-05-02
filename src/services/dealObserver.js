@@ -5,6 +5,7 @@ async function checkAndUpdateDeals() {
     const deals = await Deal.find({
       $or: [
         { status: 'confirmed' },
+        { status: 'reschedule_first_offer' },
         { status: 'reschedule_offer' },
         { status: 'reschedule_offer_update' },
         { status: 'half_completed' },
@@ -14,69 +15,42 @@ async function checkAndUpdateDeals() {
     });
 
     for (const deal of deals) {
-      if (deal.status === 'confirmed') {
+      deal.previousStatus = deal.status;
 
-        if (
-            deal.update.form.meetingDate &&
-            deal.update.form.meetingTime &&
-            deal.update.form.meetingDuration
-          ) {
-
-          if (isDealCompleted(deal.update.form)) {
-            await Deal.updateOne({ _id: deal._id }, { status: 'half_completed' });
-          }
-
-        } else {
-
-          if (isDealCompleted(deal.form)) {
-            await Deal.updateOne({ _id: deal._id }, { status: 'half_completed' });
-          }
-
+      const updateDealStatus = async (form1, form2, newStatus) => {
+        if (isDealCompleted(form1)) {
+          await Deal.updateOne({ _id: deal._id }, { status: newStatus });
+        } else if (isDealCompleted(form2)) {
+          await Deal.updateOne({ _id: deal._id }, { status: newStatus });
         }
+      };
 
+      if (['confirmed', 'reschedule_first_offer'].includes(deal.status)) {
+        if (deal.update.form.meetingDate && deal.update.form2.meetingDate) {
+          await updateDealStatus(deal.update.form, deal.update.form2, 'half_completed');
+        } else {
+          await updateDealStatus(deal.form, deal.form2, 'half_completed');
+        }
       } else if (deal.status === 'reschedule_offer') {
-
-        if (isDealCompleted(deal.update.form)) {
-          await Deal.updateOne({ _id: deal._id }, { status: 'half_completed' });
-        }
-
+        await updateDealStatus(deal.update.form, deal.update.form2, 'half_completed');
       } else if (deal.status === 'reschedule_offer_update') {
-
-        if (isDealCompleted(deal.form)) {
-          await Deal.updateOne({ _id: deal._id }, { status: 'half_completed' });
-        }
-
-      } else if (deal.status === 'half_completed') {
-
-        if (
-            deal.update.form2.meetingDate &&
-            deal.update.form2.meetingTime &&
-            deal.update.form2.meetingDuration
-          ) {
-
-          if (isDealCompleted(deal.update.form2)) {
-            await Deal.updateOne({ _id: deal._id }, { status: 'completed' });
-          }
-
-        } else {
-
-          if (isDealCompleted(deal.form2)) {
-            await Deal.updateOne({ _id: deal._id }, { status: 'completed' });
-          }
-        }
-
+        await updateDealStatus(deal.form, deal.form2, 'half_completed');
       } else if (deal.status === 'confirmed_reschedule') {
-
-        if (isDealCompleted(deal.reschedule.form)) {
-          await Deal.updateOne({ _id: deal._id }, { status: 'half_completed' });
+        await updateDealStatus(deal.reschedule.form, null, 'half_completed');
+      } else if (deal.status === 'half_completed') {
+        if (['confirmed', 'reschedule_first_offer'].includes(deal.previousStatus)) {
+          if (deal.update.form.meetingDate && deal.update.form2.meetingDate) {
+            await updateDealStatus(deal.update.form, deal.update.form2, 'completed');
+          } else {
+            await updateDealStatus(deal.form, deal.form2, 'completed');
+          }
+        } else if (deal.previousStatus === 'reschedule_offer') {
+          await updateDealStatus(deal.update.form, deal.update.form2, 'completed');
+        } else if (deal.previousStatus === 'reschedule_offer_update') {
+          await updateDealStatus(deal.form, deal.form2, 'completed');
         }
-
       } else if (deal.status === 'half_completed_confirmed_reschedule') {
-
-        if (isDealCompleted(deal.reschedule.form2)) {
-          await Deal.updateOne({ _id: deal._id }, { status: 'completed' });
-        }
-
+        await updateDealStatus(deal.reschedule.form2, null, 'completed');
       }
     }
   } catch (error) {
@@ -99,3 +73,4 @@ function isDealCompleted(form) {
 }
 
 module.exports = checkAndUpdateDeals;
+

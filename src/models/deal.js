@@ -23,6 +23,7 @@ const dealSchema = new mongoose.Schema({
         "pending",
         "pending_update",
         "confirmed",
+        "reschedule_first_offer",
         "reschedule_offer",
         "reschedule_offer_update",
         "confirmed_reschedule",
@@ -33,6 +34,10 @@ const dealSchema = new mongoose.Schema({
         "completed",
       ],
       default: "not_started",
+  },
+  previousStatus: {
+    type: String,
+    default: null
   },
   cancellation: {
     reason: {

@@ -114,11 +114,12 @@ const DealController = (io) => {
         const rescheduleForm2Matches = deal.reschedule.form2 && Object.keys(rescheduleFormData2).every(field => rescheduleFormData2[field] === deal.reschedule.form2[field]);
 
         if (deal.status === 'confirmed') {
-          deal.status = 'reschedule_offer';
+          deal.status = 'reschedule_first_offer';
 
           deal.reschedule.form = rescheduleFormData1;
           deal.reschedule.form2 = rescheduleFormData2;
-        } else if (deal.status === 'reschedule_offer') {
+        } else if (deal.status === 'reschedule_first_offer' || deal.status === "reschedule_offer") {
+          deal.status = 'reschedule_offer';
           if (!rescheduleForm1Matches || !rescheduleForm2Matches) {
             if (deal.update.form.meetingDate && deal.update.form.meetingTime && deal.update.form.meetingDuration &&
                 deal.update.form2.meetingDate && deal.update.form2.meetingTime && deal.update.form2.meetingDuration) {
