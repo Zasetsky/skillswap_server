@@ -15,6 +15,7 @@ const reviewRoutes = require('./routes/reviewRoutes');
 const swapRequestController = require('./controllers/swapRequestController');
 const chatController = require('./controllers/chatController');
 const dealController = require('./controllers/dealController');
+const onlineUsersController = require('./controllers/onlineUsersController');
 
 const cors = require('cors');
 const path = require('path');
@@ -58,6 +59,7 @@ app.use('/api/matching', matchingRoutes);
 app.use('/api/reviews', reviewRoutes);
 
 // WebSocket
+onlineUsersController(io);
 chatController(io);
 swapRequestController(io);
 dealController(io);

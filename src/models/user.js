@@ -54,6 +54,10 @@ const userSchema = new mongoose.Schema({
         type: Number,
         default: 0,
       },
+      isRated: {
+        type: Boolean,
+        default: false,
+      }
     },
   ],
   reliabilityRating: {
@@ -73,6 +77,20 @@ const userSchema = new mongoose.Schema({
     default: 0,
     min: 0,
     max: 5,
+  },
+  onlineSessions: [
+    {
+      sessionStart: Date,
+      sessionEnd: Date
+    }
+  ],
+  averageOnlineTime: {
+    type: Number,
+    default: 0,
+  },
+  isOnline: {
+    type: Boolean,
+    default: false,
   },
   availability: {
     type: String,

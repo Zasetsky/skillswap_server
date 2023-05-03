@@ -1,26 +1,5 @@
 const Deal = require('../models/deal');
-const authMiddleware = require('../middlewares/authMiddleware');
-
-
-const socketAuthMiddleware = (socket, next) => {
-  const req = {
-    headers: {
-      authorization: socket.handshake.headers.authorization
-    }
-  };
-  const res = {
-    status: (code) => ({ json: (message) => ({ code, message }) }),
-  };
-
-  authMiddleware(req, res, (err) => {
-    if (err) {
-      return next(new Error('Unauthorized'));
-    }
-
-    socket.userId = req.userId;
-    next();
-  });
-};
+const socketAuthMiddleware = require('../middlewares/socketAuthMiddleware');
 
 
 const DealController = (io) => {
