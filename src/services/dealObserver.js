@@ -20,7 +20,7 @@ async function checkAndUpdateDeals() {
     
       if (
         (deal.status === "confirmed_reschedule" || deal.status === "half_completed_confirmed_reschedule") &&
-        (isDealCompleted(form1) || isDealCompleted(form2))
+        isDealCompleted(form1)
       ) {
         await Deal.updateOne({ _id: deal._id }, { status: newStatus });
       } else {

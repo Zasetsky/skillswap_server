@@ -2,7 +2,6 @@ const express = require('express');
 const connectDB = require('./config/db');
 
 // Observer
-// const { startDealObserver } = require("./services/dealObserver");
 const setupCronJobs = require('./services/cronIndex');
 
 // Routes
@@ -10,6 +9,7 @@ const authRoutes = require('./routes/authRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const skillRoutes = require('./routes/skillRoutes');
 const matchingRoutes = require('./routes/matchingRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
 
 // Controllers
 const swapRequestController = require('./controllers/swapRequestController');
@@ -50,10 +50,12 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 app.use(express.json());
 
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/skills', skillRoutes);
 app.use('/api/matching', matchingRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 // WebSocket
 chatController(io);
@@ -61,7 +63,6 @@ swapRequestController(io);
 dealController(io);
 
 // Observer
-// startDealObserver();
 setupCronJobs();
   
 const PORT = process.env.PORT || 3000;
