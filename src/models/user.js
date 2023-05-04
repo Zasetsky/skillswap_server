@@ -92,6 +92,10 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  timeZoneOffset: {
+    type: Number,
+    default: 0,
+  },
   availability: {
     type: String,
     default: '',

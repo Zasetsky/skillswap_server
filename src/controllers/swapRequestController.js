@@ -117,7 +117,21 @@ const swapRequestController = (io) => {
         console.error("Ошибка при получении всех запросов на обмен:", error);
         socket.emit("getAllSwapRequestsError", { status: 500, error: "Error fetching all swap requests" });
       }
-    });    
+    });
+
+    socket.on("getCurrentSwapRequest", async (data) => {
+      try {
+        const { swapRequestId } = data;
+
+        const swapRequest = await SwapRequest.findOne({ _id: swapRequestId });
+    
+        console.log("Получен текущий запрос на обмен");
+        socket.emit("currentSwapRequest", swapRequest);
+      } catch (error) {
+        console.error("Ошибка при получении текущего запроса на обмен:", error);
+        socket.emit("getCurrentSwapRequestError", { status: 500, error: "Error fetching current swap request" });
+      }
+    });
 
     socket.on("disconnect", () => {
       console.log("User disconnected from swap requests");

@@ -36,35 +36,38 @@ const DealController = (io) => {
     // Обновление Сделки
     socket.on("updateDeal", async (data) => {
       const { dealId, formData1, formData2 } = data;
-    
+
       try {
         const deal = await Deal.findById(dealId);
         if (!deal) {
           return socket.emit("error", { message: "Deal not found" });
         }
-    
+
         deal.sender = socket.userId;
-    
+
+        const updateForms = () => {
+          deal.update.form = formData1;
+          deal.update.form2 = formData2;
+        };
+
+        const form1Matches = Object.keys(formData1).every(field => formData1[field] === deal.form[field]);
+        const form2Matches = Object.keys(formData2).every(field => formData2[field] === deal.form2[field]);
+
         if (deal.status === "not_started" || deal.status === "in_progress") {
           deal.status = "pending";
           deal.form = formData1;
           deal.form2 = formData2;
         } else if (deal.status === "pending" || deal.status === "pending_update") {
           deal.status = "pending_update";
-          const form1Matches = Object.keys(formData1).every(field => formData1[field] === deal.form[field]);
-          const form2Matches = Object.keys(formData2).every(field => formData2[field] === deal.form2[field]);
-    
+
           if (!form1Matches || !form2Matches) {
             if (!deal.update.form.meetingDate && !deal.update.form.meetingTime && !deal.update.form.meetingDuration &&
                 !deal.update.form2.meetingDate && !deal.update.form2.meetingTime && !deal.update.form2.meetingDuration) {
-              deal.update.form = formData1;
-              deal.update.form2 = formData2;
+              updateForms();
             } else {
               deal.form = deal.update.form;
               deal.form2 = deal.update.form2;
-
-              deal.update.form = formData1;
-              deal.update.form2 = formData2;
+              updateForms();
             }
           }
         }
@@ -75,6 +78,7 @@ const DealController = (io) => {
         socket.emit("error", { message: "Error updating deal" });
       }
     });
+    
     
 
     // Предложение переноса Сделки
@@ -89,42 +93,33 @@ const DealController = (io) => {
 
         deal.sender = socket.userId;
 
+        const updateForms = () => {
+          deal.update.form = rescheduleFormData1;
+          deal.update.form2 = rescheduleFormData2;
+        };
+
         const rescheduleForm1Matches = deal.reschedule.form && Object.keys(rescheduleFormData1).every(field => rescheduleFormData1[field] === deal.reschedule.form[field]);
         const rescheduleForm2Matches = deal.reschedule.form2 && Object.keys(rescheduleFormData2).every(field => rescheduleFormData2[field] === deal.reschedule.form2[field]);
 
         if (deal.status === 'confirmed') {
-          deal.status = 'reschedule_first_offer';
+          deal.status = 'reschedule_offer';
 
           deal.reschedule.form = rescheduleFormData1;
           deal.reschedule.form2 = rescheduleFormData2;
-        } else if (deal.status === 'reschedule_first_offer' || deal.status === "reschedule_offer") {
-          deal.status = 'reschedule_offer';
+
+        } else if (deal.status === 'reschedule_offer' || deal.status === 'reschedule_offer_update') {
+          deal.status = 'reschedule_offer_update';
+
           if (!rescheduleForm1Matches || !rescheduleForm2Matches) {
-            if (deal.update.form.meetingDate && deal.update.form.meetingTime && deal.update.form.meetingDuration &&
-                deal.update.form2.meetingDate && deal.update.form2.meetingTime && deal.update.form2.meetingDuration) {
-              deal.form = deal.reschedule.form;
-              deal.form2 = deal.reschedule.form2;
-
-              deal.reschedule.form = rescheduleFormData1;
-              deal.reschedule.form2 = rescheduleFormData2;
+            if (!deal.update.form.meetingDate && !deal.update.form.meetingTime && !deal.update.form.meetingDuration &&
+                !deal.update.form2.meetingDate && !deal.update.form2.meetingTime && !deal.update.form2.meetingDuration) {
+              updateForms();
             } else {
-              deal.status = 'reschedule_offer_update';
-
-              deal.update.form = deal.reschedule.form;
-              deal.update.form2 = deal.reschedule.form2;
-
-              deal.reschedule.form = rescheduleFormData1;
-              deal.reschedule.form2 = rescheduleFormData2;
+              deal.reschedule.form = deal.update.form;
+              deal.reschedule.form2 = deal.update.form2;
+              updateForms();
             }
           } 
-        } else {
-          if (!rescheduleForm1Matches || !rescheduleForm2Matches) {
-            deal.update.form = deal.reschedule.form;
-            deal.update.form2 = deal.reschedule.form2;
-
-            deal.reschedule.form = rescheduleFormData1;
-            deal.reschedule.form2 = rescheduleFormData2;
-          }  
         }
 
         await deal.save();
@@ -162,6 +157,7 @@ const DealController = (io) => {
       }
     });
 
+    // Подтверждение сделки
     socket.on("confirmDeal", async (data) => {
       const { dealId } = data;
     
@@ -170,7 +166,20 @@ const DealController = (io) => {
         if (!deal) {
           return socket.emit("error", { message: "Deal not found" });
         }
-    
+        
+        if (deal.update.form.meetingDate && deal.update.form.meetingTime && deal.update.form.meetingDuration &&
+            deal.update.form2.meetingDate && deal.update.form2.meetingTime && deal.update.form2.meetingDuration) {
+              deal.form = deal.update.form;
+              deal.form2 = deal.update.form2;
+
+              delete deal.update.form.meetingDate;
+              delete deal.update.form.meetingTime;
+              delete deal.update.form.meetingDuration;
+              delete deal.update.form2.meetingDate;
+              delete deal.update.form2.meetingTime;
+              delete deal.update.form2.meetingDuration;
+          }
+
         deal.status = "confirmed";
     
         await deal.save();

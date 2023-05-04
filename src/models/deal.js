@@ -9,35 +9,34 @@ const dealSchema = new mongoose.Schema({
     },
   ],
   chatId: {
-      type: String,
-      required: true,
+    type: String,
+    required: true,
   },
   swapRequestId: {
-      type: String,
-      required: true,
+    type: String,
+    required: true,
+  },
+  completedForm: {
+    type: String,
+    required: false,
   },
   status: {
-      type: String,
-      enum: [ 
-        "not_started",
-        "pending",
-        "pending_update",
-        "confirmed",
-        "reschedule_first_offer",
-        "reschedule_offer",
-        "reschedule_offer_update",
-        "confirmed_reschedule",
-        "cancelled",
-        "in_progress",
-        "half_completed",
-        "half_completed_confirmed_reschedule",
-        "completed",
-      ],
-      default: "not_started",
-  },
-  previousStatus: {
     type: String,
-    default: null
+    enum: [ 
+      "not_started",
+      "pending",
+      "pending_update",
+      "confirmed",
+      "reschedule_offer",
+      "reschedule_offer_update",
+      "confirmed_reschedule",
+      "cancelled",
+      "in_progress",
+      "half_completed",
+      "half_completed_confirmed_reschedule",
+      "completed",
+    ],
+    default: "not_started",
   },
   cancellation: {
     reason: {
@@ -53,8 +52,8 @@ const dealSchema = new mongoose.Schema({
     },
   },
   sender: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
   },
   form: {
     meetingDate: {
@@ -144,6 +143,10 @@ const dealSchema = new mongoose.Schema({
         type: String,
         required: false,
       },
+      isCompleted: {
+        type: Boolean,
+        default: false,
+      },
     },
     form2: {
       meetingDate: {
@@ -157,6 +160,10 @@ const dealSchema = new mongoose.Schema({
       meetingDuration: {
         type: String,
         required: false,
+      },
+      isCompleted: {
+        type: Boolean,
+        default: false,
       },
     },
   },
