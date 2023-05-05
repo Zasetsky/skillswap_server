@@ -25,7 +25,7 @@ async function checkAndUpdateDeals() {
             { _id: deal._id },
             { 
               status: newStatus,
-              completedForm: formPath,
+              $push: { completedForm: formPath },
               [`${formPath}.isCompleted`]: true,
             }
           );

@@ -66,7 +66,7 @@ const userSchema = new mongoose.Schema({
     min: 0,
     max: 5,
   },
-  engagementRating: {
+  loyaltyRating : {
     type: Number,
     default: 0,
     min: 0,
@@ -78,15 +78,8 @@ const userSchema = new mongoose.Schema({
     min: 0,
     max: 5,
   },
-  onlineSessions: [
-    {
-      sessionStart: Date,
-      sessionEnd: Date
-    }
-  ],
-  averageOnlineTime: {
-    type: Number,
-    default: 0,
+  lastSeen: {
+    type: Date,
   },
   isOnline: {
     type: Boolean,

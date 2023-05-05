@@ -181,6 +181,7 @@ const DealController = (io) => {
           }
 
         deal.status = "confirmed";
+        deal.createdAt = new Date();
     
         await deal.save();
         socket.emit("dealConfirmed", deal);

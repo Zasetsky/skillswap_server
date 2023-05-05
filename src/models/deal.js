@@ -16,10 +16,13 @@ const dealSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  completedForm: {
-    type: String,
-    required: false,
-  },
+  completedForm: [
+    {
+      type: String,
+      enum: ['form', 'form2'],
+      required: false,
+    },
+  ],
   status: {
     type: String,
     enum: [ 
@@ -105,10 +108,6 @@ const dealSchema = new mongoose.Schema({
         type: String,
         required: false,
       },
-      isCompleted: {
-        type: Boolean,
-        default: false,
-      },
     },
     form2: {
       meetingDate: {
@@ -122,10 +121,6 @@ const dealSchema = new mongoose.Schema({
       meetingDuration: {
         type: String,
         required: false,
-      },
-      isCompleted: {
-        type: Boolean,
-        default: false,
       },
     },
   },
@@ -143,10 +138,6 @@ const dealSchema = new mongoose.Schema({
         type: String,
         required: false,
       },
-      isCompleted: {
-        type: Boolean,
-        default: false,
-      },
     },
     form2: {
       meetingDate: {
@@ -161,11 +152,10 @@ const dealSchema = new mongoose.Schema({
         type: String,
         required: false,
       },
-      isCompleted: {
-        type: Boolean,
-        default: false,
-      },
     },
+  },
+  createdAt: {
+    type: Date,
   },
 });
 

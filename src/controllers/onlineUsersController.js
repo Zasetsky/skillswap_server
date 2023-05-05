@@ -1,6 +1,5 @@
 const User = require('../models/user');
 const socketAuthMiddleware = require('../middlewares/socketAuthMiddleware');
-const calculateAverageOnlineTime = require('../helpers/calculateOnlineTime');
 
 const onlineUsers = new Map();
 
@@ -15,11 +14,7 @@ const socketOnlineUsersController = (io) => {
       console.log(`User ${userId} is online with socket ID ${socket.id}`);
 
       // Обновите статус пользователя в базе данных
-      await User.findByIdAndUpdate(userId, { isOnline: true });
-
-      // Запись времени входа пользователя
-      const sessionStart = new Date();
-      await User.findByIdAndUpdate(userId, { $push: { onlineSessions: { sessionStart } } });
+      await User.findByIdAndUpdate(userId, { isOnline: true, lastSeen: new Date() });
     });
 
     // Слушайте событие проверки статуса онлайн
@@ -36,34 +31,20 @@ const socketOnlineUsersController = (io) => {
     // Слушайте событие выхода пользователя
     socket.on('disconnect', async () => {
       console.log('A user disconnected:', socket.id);
-    
+
       // Удалите пользователя из списка онлайн-пользователей
       let disconnectedUserId;
       for (const [userId, userSocketId] of onlineUsers.entries()) {
         if (userSocketId === socket.id) {
           onlineUsers.delete(userId);
           console.log(`User ${userId} went offline`);
-    
-          // Обновите статус пользователя в базе данных
-          await User.findByIdAndUpdate(userId, { isOnline: false });
-    
+
+          // Обновите статус пользователя в базе данных и установите время последнего входа
+          await User.findByIdAndUpdate(userId, { isOnline: false, lastSeen: new Date() });
+
           disconnectedUserId = userId;
           break;
         }
-      }
-    
-      if (disconnectedUserId) {
-        // Запись времени выхода пользователя
-        const sessionEnd = new Date();
-        await User.findOneAndUpdate(
-          { _id: disconnectedUserId, 'onlineSessions.sessionEnd': null },
-          { $set: { 'onlineSessions.$[].sessionEnd': sessionEnd } }
-        );
-    
-        // Обновление среднего времени онлайн
-        const user = await User.findById(disconnectedUserId);
-        const averageOnlineTime = calculateAverageOnlineTime(user.onlineSessions);
-        await User.findByIdAndUpdate(disconnectedUserId, { averageOnlineTime });
       }
     });
   });

@@ -8,16 +8,18 @@ exports.updateSkillRating = async (userId, skillId) => {
             User.findById(userId),
             Review.find({ receiver: userId, skill: skillId })
         ]);
-
+        
         const totalRating = reviews.reduce((sum, r) => sum + r.skillRating, 0);
         const averageRating = totalRating / reviews.length;
 
-        const skillToTeachIndex = user.skillsToTeach.findIndex(s => s._id === skillId);
+        const skillToTeachIndex = user.skillsToTeach.findIndex(s => s._id.toString() === skillId.toString());
+        console.log(skillToTeachIndex);
         if (skillToTeachIndex !== -1) {
             user.skillsToTeach[skillToTeachIndex].rating = averageRating;
             user.skillsToTeach[skillToTeachIndex].isRated = true;
 
             await user.save();
+            console.log('Skill rating updated:', user.skillsToTeach[skillToTeachIndex]);
         }
     } catch (error) {
         console.error('Error updating skill rating:', error);
@@ -34,6 +36,7 @@ exports.updateTotalSkillsRating = async (userId) => {
 
         user.totalSkillsRating = averageRating;
         await user.save();
+        console.log('Total skills rating updated:', user.totalSkillsRating);
     } catch (error) {
         console.error('Error updating total skills rating:', error);
     }
@@ -64,44 +67,38 @@ exports.updateReliabilityRating = async (userId) => {
 
         user.reliabilityRating = reliabilityRating;
         await user.save();
+        console.log('Reliability rating updated:', user.reliabilityRating);
     } catch (error) {
         console.error('Error updating reliability rating:', error);
     }
 };
 
-exports.updateEngagementRating = async (userId) => {
-    try {
-        const user = await User.findById(userId);
+exports.updateLoyaltyRating = async (userId) => {
+  try {
+    const user = await User.findById(userId);
 
-        const deals = await Deal.find({
-            participants: user._id,
-            status: { $in: ['completed', 'half_completed', 'confirmed_reschedule', 'half_completed_confirmed_reschedule'] }
-        });
+    const deals = await Deal.find({
+      participants: user._id,
+      status: { $in: ['completed', 'half_completed', 'confirmed_reschedule', 'half_completed_confirmed_reschedule'] }
+    });
 
-        const reviewPromises = deals.map(deal => Review.findOne({ sender: user._id, dealId: deal._id }));
-        const reviews = await Promise.all(reviewPromises);
-        const reviewedDealsFiltered = reviews.filter(review => review);
+    const reviewPromises = deals.map(deal => Review.findOne({ sender: user._id, dealId: deal._id }));
+    const reviews = await Promise.all(reviewPromises);
+    const reviewedDealsFiltered = reviews.filter(review => review);
 
-        const averageReviewRating = reviewedDealsFiltered.length > 0 ? reviewedDealsFiltered.reduce((sum, review) => sum + review.skillRating, 0) / reviewedDealsFiltered.length : 0;
-        const averageOnlineTime = user.averageOnlineTime;
-        const userEngagement = (averageReviewRating + (averageOnlineTime / 60000)) / 2;
+    const totalDeals = deals.length;
+    const totalReviewedDeals = reviewedDealsFiltered.length;
 
-        // Вычислить средний рейтинг вовлеченности всех пользователей
-        const averageEngagementRatingResult = await User.aggregate([
-            {
-                $group: {
-                    _id: null,
-                    averageEngagementRating: { $avg: '$engagementRating' },
-                },
-            },
-        ]);
-        const averageEngagementRating = averageEngagementRatingResult.length > 0 ? averageEngagementRatingResult[0].averageEngagementRating : 0;
+    const loyaltyRating = totalDeals > 0 ? (totalReviewedDeals / totalDeals) * 5 : 0;
 
-        // Обновить рейтинг вовлеченности текущего пользователя относительно среднего рейтинга всех пользователей
-        const engagementRating = 5 * (userEngagement / averageEngagementRating);
-        user.engagementRating = engagementRating;
-        await user.save();
-    } catch (error) {
-        console.error('Error updating engagement rating:', error);
-    }
+    user.loyaltyRating = loyaltyRating;
+    await user.save();
+    console.log('Loyalty rating updated:', user.loyaltyRating);
+  } catch (error) {
+    console.error('Error updating loyalty rating:', error);
+  }
 };
+
+
+
+

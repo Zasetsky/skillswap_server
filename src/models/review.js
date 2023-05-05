@@ -11,6 +11,11 @@ const reviewSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  formType: {
+    type: String,
+    enum: ['form', 'form2'],
+    required: true,
+  },
   swapRequestId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'SwapRequest',
