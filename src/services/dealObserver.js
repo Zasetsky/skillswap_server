@@ -1,4 +1,5 @@
 const Deal = require('../models/deal');
+const SwapRequest = require('../models/swapRequest');
 
 async function checkAndUpdateDeals() {
   try {
@@ -34,6 +35,15 @@ async function checkAndUpdateDeals() {
 
       await updateStatusIfCompleted(form1, formPath1);
       await updateStatusIfCompleted(form2, formPath2);
+
+      // Если сделка завершена, завершить соответствующий swapRequest
+      if (newStatus === 'completed') {
+        try {
+          await SwapRequest.findByIdAndUpdate(deal.swapRequestId, { status: 'completed' });
+        } catch (error) {
+          console.error(`Ошибка при завершении swapRequest для сделки ${deal._id}:`, error);
+        }
+      }
     };
 
     function getNestedObject(obj, path) {
