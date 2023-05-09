@@ -54,6 +54,12 @@ const dealSchema = new mongoose.Schema({
       enum: ["pending", "approved", "rejected", 'cancelled'],
     },
   },
+  continuation: {
+    status: {
+      type: String,
+      enum: ["true", "approved", "false"],
+    },
+  },
   sender: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",

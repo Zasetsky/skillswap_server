@@ -6,18 +6,17 @@ const DealController = (io) => {
   io.use(socketAuthMiddleware).on("connection", (socket) => {
     console.log("User connected to deal");
 
+
     // Создание сделки
     socket.on("createOrGetCurrentDeal", async (data) => {
       const { participants, chatId, swapRequestId } = data;
 
       try {
-          // Проверяем, существует ли сделка с данным chatId
           const existingDeal = await Deal.findOne({ chatId });
-          // Если существует, возвращаем её
+
           if (existingDeal) {
               socket.emit("deal", existingDeal);
           } else {
-              // В противном случае создаем новую сделку
               const newDeal = new Deal({
                   participants,
                   chatId,
@@ -129,6 +128,7 @@ const DealController = (io) => {
       }
     });
 
+
     // Запрос всех сделок пользователя
     socket.on("getAllDeals", async () => {
         try {
@@ -156,6 +156,7 @@ const DealController = (io) => {
         socket.emit("error", { message: "Error fetching current deal" });
       }
     });
+
 
     // Подтверждение сделки
     socket.on("confirmDeal", async (data) => {
@@ -190,6 +191,7 @@ const DealController = (io) => {
       }
     });
 
+
     // Запрос отмены
     socket.on("requestCancellation", async (data) => {
       const { dealId, reason, timestamp } = data;
@@ -210,6 +212,7 @@ const DealController = (io) => {
       }
     });
 
+
     // Подтверждение отмены
     socket.on("approveCancellation", async (data) => {
       const { dealId } = data;
@@ -229,6 +232,7 @@ const DealController = (io) => {
       }
     });
 
+
     // Отклонение отмены
     socket.on("rejectCancellation", async (data) => {
       const { dealId } = data;
@@ -246,6 +250,66 @@ const DealController = (io) => {
         socket.emit("error", { message: "Ошибка при отклонении отмены" });
       }
     });
+
+
+    // Запрос на продолжение
+    socket.on("requestContinuation", async (data) => {
+      const { dealId } = data;
+    
+      try {
+        const deal = await Deal.findById(dealId);
+        if (!deal) {
+          return socket.emit("error", { message: "Deal not found" });
+        }
+    
+        deal.sender = socket.userId;
+        deal.continuation.status = "true";
+    
+        await deal.save();
+        socket.emit("continuationRequested", deal);
+      } catch (error) {
+        socket.emit("error", { message: "Error requesting continuation" });
+      }
+    });
+
+
+    // Подтверждение продолжения
+    socket.on("approveContinuation", async (data) => {
+      const { dealId } = data;
+    
+      try {
+        const deal = await Deal.findById(dealId);
+        if (!deal) {
+          return socket.emit("error", { message: "Deal not found" });
+        }
+    
+        deal.continuation.status = "approved";
+        await deal.save();
+        socket.emit("continuationApproved", deal);
+      } catch (error) {
+        socket.emit("error", { message: "Error approving continuation" });
+      }
+    });
+
+
+    // Отклонение продолжения
+    socket.on("rejectContinuation", async (data) => {
+      const { dealId } = data;
+    
+      try {
+        const deal = await Deal.findById(dealId);
+        if (!deal) {
+          return socket.emit("error", { message: "Deal not found" });
+        }
+    
+        deal.continuation.status = "false";
+        await deal.save();
+        socket.emit("continuationRejected", deal);
+      } catch (error) {
+        socket.emit("error", { message: "Error approving continuation" });
+      }
+    });    
+
 
     socket.on("disconnect", () => {
       console.log("User disconnected from deal");

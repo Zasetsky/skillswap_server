@@ -21,7 +21,7 @@ const chatSchema = new mongoose.Schema({
       },
       type: {
         type: String,
-        enum: ['deal_proposal', 'reschedule_proposal', 'cancellation_request', 'text', 'meeting_details'],
+        enum: ['deal_proposal', 'reschedule_proposal', 'cancellation_request', 'continuation_request', 'details', 'text', 'meeting_details'],
         default: 'text',
       },
       content: {
