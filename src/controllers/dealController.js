@@ -1,4 +1,5 @@
 const Deal = require('../models/deal');
+const SwapRequest = require('../models/swapRequest');
 const socketAuthMiddleware = require('../middlewares/socketAuthMiddleware');
 
 
@@ -13,6 +14,7 @@ const DealController = (io) => {
 
       try {
           const existingDeal = await Deal.findOne({ chatId });
+          const swapRequest = await SwapRequest.findById(swapRequestId);
 
           if (existingDeal) {
               socket.emit("deal", existingDeal);
@@ -24,6 +26,10 @@ const DealController = (io) => {
               });
   
               await newDeal.save();
+
+              swapRequest.dealId = newDeal._id;
+              await swapRequest.save();
+
               socket.emit("deal", newDeal);
           }
       } catch (error) {
@@ -279,12 +285,28 @@ const DealController = (io) => {
     
       try {
         const deal = await Deal.findById(dealId);
+        const swapRequest = await SwapRequest.findOne({ dealId: dealId});
+        console.log(swapRequest);
+
         if (!deal) {
           return socket.emit("error", { message: "Deal not found" });
         }
+
+        if (!swapRequest) {
+          return socket.emit("error", { message: "SwapRequest not found" });
+        }
     
+        delete deal.completedForm;
         deal.continuation.status = "approved";
+        deal.form.meetingDate = '';
+        deal.form2.meetingDate = '';
+        deal.form.isCompleted = false;
+        deal.form2.isCompleted = false;
+        deal.status = "not_started";
+        swapRequest.status = "accepted"
+
         await deal.save();
+        await swapRequest.save();
         socket.emit("continuationApproved", deal);
       } catch (error) {
         socket.emit("error", { message: "Error approving continuation" });

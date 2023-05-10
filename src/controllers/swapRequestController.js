@@ -1,4 +1,5 @@
 const SwapRequest = require('../models/swapRequest');
+const User = require('../models/user');
 const socketAuthMiddleware = require('../middlewares/socketAuthMiddleware');
 
 const swapRequestController = (io) => {
@@ -21,6 +22,11 @@ const swapRequestController = (io) => {
 
         await newSwapRequest.save();
 
+        // Найти пользователя и обновить isActive для соответствующего навыка
+        const skillId = receiverData.skillsToLearn._id;
+        
+        await User.updateOne({ _id: senderId, "skillsToLearn._id": skillId }, { $set: { "skillsToLearn.$.isActive": true } });
+
         // Отправляем уведомление об успешной отправке запроса на обмен
         socket.emit("swapRequestSent", { status: 200, message: "Swap request sent successfully" });
       } catch (error) {
@@ -28,6 +34,7 @@ const swapRequestController = (io) => {
         socket.emit("swapRequestError", { status: 500, error: "Error sending swap request" });
       }
     });
+
 
     // Принять запрос на обмен
     socket.on("acceptSwapRequest", async (data) => {
@@ -87,7 +94,6 @@ const swapRequestController = (io) => {
     socket.on("deleteSwapRequest", async (data) => {
       try {
         const { requestId } = data;
-        console.log('hi!', requestId);
         console.log("Удаляем запрос на обмен с ID:", requestId);
 
         const deletedSwapRequest = await SwapRequest.findByIdAndDelete(requestId);

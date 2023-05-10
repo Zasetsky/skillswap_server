@@ -25,9 +25,13 @@ const swapRequestSchema = new mongoose.Schema({
     skillsToLearn: Array,
     skillsToTeach: Array,
   },
+  dealId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Deal'
+  },
   status: {
     type: String,
-    enum: ['pending', 'accepted', 'active', 'rejected', 'cancelled', 'completed'],
+    enum: ['pending', 'accepted', 'rejected', 'cancelled', 'completed'],
     default: 'pending',
   },
   createdAt: {
