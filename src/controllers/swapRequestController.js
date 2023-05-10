@@ -56,6 +56,9 @@ const swapRequestController = (io) => {
           return skill._id.toString() === chosenSkillToSwap._id.toString();
         });
     
+        // Найти пользователя и обновить isActive для соответствующего навыка
+        await User.updateOne({ _id: swapRequest.receiverId, "skillsToLearn._id": chosenSkillToSwap._id }, { $set: { "skillsToLearn.$.isActive": true } });
+    
         await swapRequest.save();
     
         socket.emit("swapRequestAccepted", { status: 200, message: 'Swap request accepted' });
@@ -64,25 +67,31 @@ const swapRequestController = (io) => {
         socket.emit("acceptSwapRequestError", { status: 500, message: 'Server error', error });
       }
     });
-    
+
 
     // Отклонить запрос на обмен
     socket.on("rejectSwapRequest", async (data) => {
       try {
         const { swapRequestId } = data;
-
+    
         if (!swapRequestId) {
           return socket.emit("rejectSwapRequestError", { status: 400, error: "Необходимо указать _id swapRequests" });
         }
-
+    
         const swapRequest = await SwapRequest.findById(swapRequestId);
         if (!swapRequest) {
           return socket.emit("rejectSwapRequestError", { status: 404, error: "Swap request not found" });
         }
-
+    
+        // Получаем _id умения
+        const skillId = swapRequest.receiverData.skillsToLearn[0]._id;
+    
+        // Обновляем пользователя, меняя isActive на false для соответствующего умения
+        await User.updateOne({ _id: swapRequest.senderId, "skillsToLearn._id": skillId }, { $set: { "skillsToLearn.$.isActive": false } });
+    
         swapRequest.status = "rejected";
         await swapRequest.save();
-
+    
         socket.emit("swapRequestRejected", { status: 200, message: "Статус swapRequests успешно изменен на 'rejected'" });
       } catch (error) {
         console.error(error);
@@ -90,14 +99,31 @@ const swapRequestController = (io) => {
       }
     });
 
+
     // Удалить запрос на обмен
     socket.on("deleteSwapRequest", async (data) => {
       try {
         const { requestId } = data;
         console.log("Удаляем запрос на обмен с ID:", requestId);
+    
+        // Находим запрос на обмен до его удаления, чтобы получить данные об умении
+        const swapRequest = await SwapRequest.findById(requestId);
+    
+        if (!swapRequest) {
+          console.log("Ошибка при удалении запроса на обмен: запрос не найден");
+          socket.emit("deleteSwapRequestError", { status: 500, error: "Error deleting swap request: request not found" });
+          return;
+        }
 
+        // Получаем _id умения
+        const skillId = swapRequest.receiverData.skillsToLearn[0]._id;
+
+        // Обновляем пользователя, меняя isActive на false для соответствующего умения
+        await User.updateOne({ _id: swapRequest.senderId, "skillsToLearn._id": skillId }, { $set: { "skillsToLearn.$.isActive": false } });
+    
+        // Удаляем запрос на обмен
         const deletedSwapRequest = await SwapRequest.findByIdAndDelete(requestId);
-
+    
         if (deletedSwapRequest) {
           console.log("Запрос на обмен успешно удалён");
           socket.emit("swapRequestDeleted"); // Отправляем статус 204 No Content без тела сообщения
@@ -110,6 +136,7 @@ const swapRequestController = (io) => {
         socket.emit("deleteSwapRequestError", { status: 500, error: "Error deleting swap request" });
       }
     });
+    
 
     // Получить все swapRequests
     socket.on("getAllSwapRequests", async () => {
