@@ -44,6 +44,9 @@ async function checkAndUpdateDeals(io) {
       if (newStatus === 'completed') {
         try {
           await SwapRequest.findByIdAndUpdate(deal.swapRequestId, { status: 'completed' });
+
+          const updatedSwapRequest = await SwapRequest.findById(deal.swapRequestId);
+          io.emit('swapRequestUpdated', updatedSwapRequest);
         } catch (error) {
           console.error(`Ошибка при завершении swapRequest для сделки ${deal._id}:`, error);
         }
