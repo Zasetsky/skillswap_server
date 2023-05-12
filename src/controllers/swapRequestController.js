@@ -136,7 +136,6 @@ const swapRequestController = (io) => {
         socket.emit("deleteSwapRequestError", { status: 500, error: "Error deleting swap request" });
       }
     });
-    
 
     // Получить все swapRequests
     socket.on("getAllSwapRequests", async () => {

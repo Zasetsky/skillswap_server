@@ -1,7 +1,7 @@
 const Deal = require('../models/deal');
 const SwapRequest = require('../models/swapRequest');
 
-async function checkAndUpdateDeals() {
+async function checkAndUpdateDeals(io) {
   try {
     const deals = await Deal.find({
       status: {
@@ -16,7 +16,7 @@ async function checkAndUpdateDeals() {
       },
     });
 
-    const updateDealStatus = async (deal, formPath1, formPath2, newStatus) => {
+    const updateDealStatus = async (deal, formPath1, formPath2, newStatus, io) => {
       const form1 = getNestedObject(deal, formPath1);
       const form2 = getNestedObject(deal, formPath2);
 
@@ -30,6 +30,10 @@ async function checkAndUpdateDeals() {
               [`${formPath}.isCompleted`]: true,
             }
           );
+
+          // отправить событие сокета
+          const updatedDeal = await Deal.findById(deal._id);
+          io.emit('dealUpdated', updatedDeal);
         }
       };
 
@@ -59,7 +63,7 @@ async function checkAndUpdateDeals() {
         ? 'half_completed'
         : 'completed';
 
-      await updateDealStatus(deal, 'form', 'form2', newStatus);
+      await updateDealStatus(deal, 'form', 'form2', newStatus, io);
     }
   } catch (error) {
     console.error('Ошибка при проверке и обновлении сделок:', error);

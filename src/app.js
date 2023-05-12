@@ -32,6 +32,7 @@ const io = require('socket.io')(server, {
   }
 });
 
+
 connectDB();
 
 app.use(cors({
@@ -65,7 +66,7 @@ swapRequestController(io);
 dealController(io);
 
 // Observer
-setupCronJobs();
+setupCronJobs(io);
   
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {

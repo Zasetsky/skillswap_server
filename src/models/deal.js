@@ -65,17 +65,21 @@ const dealSchema = new mongoose.Schema({
     ref: "User",
   },
   form: {
+    skill: {
+      type: String,
+      required: false,
+    },
     meetingDate: {
-    type: String,
-    required: false,
+      type: String,
+      required: false,
     },
     meetingTime: {
-    type: String,
-    required: false,
+      type: String,
+      required: false,
     },
     meetingDuration: {
-    type: String,
-    required: false,
+      type: String,
+      required: false,
     },
     isCompleted: {
       type: Boolean,
@@ -83,21 +87,25 @@ const dealSchema = new mongoose.Schema({
     },
   },
   form2: {
+    skill: {
+      type: String,
+      required: false,
+    },
     meetingDate: {
-    type: String,
-    required: false,
+      type: String,
+      required: false,
     },
     meetingTime: {
-    type: String,
-    required: false,
+      type: String,
+      required: false,
     },
     meetingDuration: {
-    type: String,
-    required: false,
+      type: String,
+      required: false,
     },
     isCompleted: {
-      type: Boolean,
-      default: false,
+        type: Boolean,
+        default: false,
     },
   },
   update: {
