@@ -1,4 +1,5 @@
 const Deal = require('../models/deal');
+const User = require('../models/user');
 const SwapRequest = require('../models/swapRequest');
 const socketAuthMiddleware = require('../middlewares/socketAuthMiddleware');
 
@@ -286,12 +287,11 @@ const DealController = (io) => {
       try {
         const deal = await Deal.findById(dealId);
         const swapRequest = await SwapRequest.findOne({ dealId: dealId});
-        console.log(swapRequest);
-
+    
         if (!deal) {
           return socket.emit("error", { message: "Deal not found" });
         }
-
+    
         if (!swapRequest) {
           return socket.emit("error", { message: "SwapRequest not found" });
         }
@@ -304,14 +304,34 @@ const DealController = (io) => {
         deal.form2.isCompleted = false;
         deal.status = "not_started";
         swapRequest.status = "accepted"
-
+    
         await deal.save();
         await swapRequest.save();
+    
+        // Ищем активные навыки
+        const skillsToTeachId = swapRequest.senderData.skillsToTeach[0]._id;
+        const skillsToLearnId = swapRequest.senderData.skillsToLearn[0]._id;
+    
+        // Обновляем активные навыки для каждого участника
+        for (let participant of deal.participants) {
+          await User.updateMany(
+            { 
+              _id: participant, 
+              'skillsToLearn._id': { $in: [skillsToTeachId, skillsToLearnId] } 
+            },
+            { 'skillsToLearn.$.isActive': true }  // Делаем навыки активными снова
+          );
+    
+          const updatedUser = await User.findById(participant);
+          socket.emit('userUpdated', updatedUser);
+        }
+    
         socket.emit("continuationApproved", deal);
       } catch (error) {
         socket.emit("error", { message: "Error approving continuation" });
       }
     });
+    
 
 
     // Отклонение продолжения

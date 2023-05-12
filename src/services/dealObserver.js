@@ -1,4 +1,5 @@
 const Deal = require('../models/deal');
+const User = require('../models/user');
 const SwapRequest = require('../models/swapRequest');
 
 async function checkAndUpdateDeals(io) {
@@ -44,8 +45,27 @@ async function checkAndUpdateDeals(io) {
       if (newStatus === 'completed') {
         try {
           await SwapRequest.findByIdAndUpdate(deal.swapRequestId, { status: 'completed' });
-
+      
           const updatedSwapRequest = await SwapRequest.findById(deal.swapRequestId);
+      
+          // Ищем активные навыки
+          const skillsToTeachId = updatedSwapRequest.senderData.skillsToTeach[0]._id;
+          const skillsToLearnId = updatedSwapRequest.senderData.skillsToLearn[0]._id;
+      
+          // Обновляем активные навыки для каждого участника
+          for (let participant of deal.participants) {
+            await User.updateMany(
+              { 
+                _id: participant, 
+                'skillsToLearn._id': { $in: [skillsToTeachId, skillsToLearnId] } 
+              },
+              { 'skillsToLearn.$.isActive': false }
+            );
+
+            const updatedUser = await User.findById(participant);
+            io.emit('userUpdated', updatedUser);
+          }
+      
           io.emit('swapRequestUpdated', updatedSwapRequest);
         } catch (error) {
           console.error(`Ошибка при завершении swapRequest для сделки ${deal._id}:`, error);
