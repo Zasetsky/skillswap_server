@@ -18,7 +18,7 @@ router.post('/avatar', authMiddleware, uploadMiddleware.single('avatar'), profil
 // Удаление аватара
 router.delete('/avatar', authMiddleware, profileController.deleteAvatar);
 
-router.post('/availability', authMiddleware, profileController.updateAvailability);
+router.post('/isPreSetup', authMiddleware, profileController.isPreSetupToggle);
 
 
 module.exports = router;

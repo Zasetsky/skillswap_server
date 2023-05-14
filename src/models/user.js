@@ -89,10 +89,10 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
-  availability: {
-    type: String,
-    default: '',
-  },
+  isPreSetup: {
+    type: Boolean,
+    default: false,
+  }
 });
 
 userSchema.pre('save', async function (next) {

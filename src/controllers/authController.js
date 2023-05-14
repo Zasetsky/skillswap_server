@@ -53,7 +53,7 @@ exports.login = async (req, res) => {
     const userWithoutPassword = user.toObject();
     delete userWithoutPassword.password;
 
-    res.status(200).json({ token, user: userWithoutPassword }); // И токен у юзера не отправлять!!!
+    res.status(200).json({ token, user: userWithoutPassword });
   } catch (error) {
     console.error('Error during login:', error);
     res.status(500).json({ message: 'Server error' });
