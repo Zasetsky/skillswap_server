@@ -110,6 +110,10 @@ const dealSchema = new mongoose.Schema({
   },
   update: {
     form: {
+      skill: {
+        type: String,
+        required: false,
+      },
       meetingDate: {
         type: String,
         required: false,
@@ -124,6 +128,10 @@ const dealSchema = new mongoose.Schema({
       },
     },
     form2: {
+      skill: {
+        type: String,
+        required: false,
+      },
       meetingDate: {
         type: String,
         required: false,
@@ -140,6 +148,10 @@ const dealSchema = new mongoose.Schema({
   },
   reschedule: {
     form: {
+      skill: {
+        type: String,
+        required: false,
+      },
       meetingDate: {
         type: String,
         required: false,
@@ -154,6 +166,10 @@ const dealSchema = new mongoose.Schema({
       },
     },
     form2: {
+      skill: {
+        type: String,
+        required: false,
+      },
       meetingDate: {
         type: String,
         required: false,

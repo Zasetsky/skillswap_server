@@ -136,15 +136,48 @@ const DealController = (io) => {
     });
 
 
+    // Подтверждение переноса сделки
+    socket.on("confirmReschedule", async (data) => {
+      const { dealId } = data;
+
+      try {
+        const deal = await Deal.findById(dealId);
+        if (!deal) {
+          return socket.emit("error", { message: "Deal not found" });
+        }
+
+        if (deal.update.form.meetingDate && deal.update.form.meetingTime && deal.update.form.meetingDuration &&
+            deal.update.form2.meetingDate && deal.update.form2.meetingTime && deal.update.form2.meetingDuration) {
+              deal.form = deal.update.form;
+              deal.form2 = deal.update.form2;
+
+              await Deal.updateOne({ _id: dealId }, { $unset: { update: "" } });
+          } else {
+              deal.form = deal.reschedule.form;
+              deal.form2 = deal.reschedule.form2;
+
+              await Deal.updateOne({ _id: dealId }, { $unset: { reschedule: "" } });
+          }
+
+        deal.status = "confirmed_reschedule";
+
+        await deal.save();
+        socket.emit("rescheduleConfirmed", deal);
+      } catch (error) {
+        socket.emit("error", { message: "Error confirming reschedule" });
+      }
+    });
+
+
     // Запрос всех сделок пользователя
     socket.on("getAllDeals", async () => {
-        try {
-          const deals = await Deal.find({ participants: socket.userId });
-          socket.emit("allDeals", deals);
-        } catch (error) {
-          socket.emit("error", { message: "Error fetching all deals" });
-        }
-      });
+      try {
+        const deals = await Deal.find({ participants: socket.userId });
+        socket.emit("allDeals", deals);
+      } catch (error) {
+        socket.emit("error", { message: "Error fetching all deals" });
+      }
+    });
 
 
     // Запрос текущей сделки
@@ -180,12 +213,7 @@ const DealController = (io) => {
               deal.form = deal.update.form;
               deal.form2 = deal.update.form2;
 
-              delete deal.update.form.meetingDate;
-              delete deal.update.form.meetingTime;
-              delete deal.update.form.meetingDuration;
-              delete deal.update.form2.meetingDate;
-              delete deal.update.form2.meetingTime;
-              delete deal.update.form2.meetingDuration;
+              await Deal.updateOne({ _id: dealId }, { $unset: { update: "" } });
           }
 
         deal.status = "confirmed";
@@ -308,18 +336,16 @@ const DealController = (io) => {
         await deal.save();
         await swapRequest.save();
     
-        // Ищем активные навыки
         const skillsToTeachId = swapRequest.senderData.skillsToTeach[0]._id;
         const skillsToLearnId = swapRequest.senderData.skillsToLearn[0]._id;
     
-        // Обновляем активные навыки для каждого участника
         for (let participant of deal.participants) {
           await User.updateMany(
             { 
               _id: participant, 
               'skillsToLearn._id': { $in: [skillsToTeachId, skillsToLearnId] } 
             },
-            { 'skillsToLearn.$.isActive': true }  // Делаем навыки активными снова
+            { 'skillsToLearn.$.isActive': true }
           );
     
           const updatedUser = await User.findById(participant);

@@ -23,7 +23,7 @@ exports.findMatchingUsers = async (req, res) => {
     }).select('-password -email');
 
     if (matchingUsers.length === 0) {
-      return res.status(400).json({ message: 'No matching users found' });
+      return res.status(200).json({ matchingUsers: [] });
     }
 
     res.status(200).json({ matchingUsers });
@@ -33,4 +33,5 @@ exports.findMatchingUsers = async (req, res) => {
     res.status(500).json({ message: 'Server error', error });
   }
 };
+
 
