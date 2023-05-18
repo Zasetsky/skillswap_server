@@ -107,7 +107,8 @@ const DealController = (io) => {
         const rescheduleForm1Matches = deal.reschedule.form && Object.keys(rescheduleFormData1).every(field => rescheduleFormData1[field] === deal.reschedule.form[field]);
         const rescheduleForm2Matches = deal.reschedule.form2 && Object.keys(rescheduleFormData2).every(field => rescheduleFormData2[field] === deal.reschedule.form2[field]);
 
-        if (deal.status === 'confirmed') {
+        if (deal.status === 'confirmed' || deal.status === 'half_completed') {
+          deal.reschedule.previousStatus = deal.status;
           deal.status = 'reschedule_offer';
 
           deal.reschedule.form = rescheduleFormData1;
@@ -152,14 +153,14 @@ const DealController = (io) => {
               deal.form2 = deal.update.form2;
 
               await Deal.updateOne({ _id: dealId }, { $unset: { update: "" } });
-          } else {
+        } else {
               deal.form = deal.reschedule.form;
               deal.form2 = deal.reschedule.form2;
+        }
 
-              await Deal.updateOne({ _id: dealId }, { $unset: { reschedule: "" } });
-          }
+        await Deal.updateOne({ _id: dealId }, { $unset: { reschedule: "" } });
 
-        deal.status = "confirmed_reschedule";
+        deal.status = deal.reschedule.previousStatus === 'half_completed' ? 'half_completed_confirmed_reschedule' : 'confirmed_reschedule';
 
         await deal.save();
         socket.emit("rescheduleConfirmed", deal);
@@ -324,7 +325,7 @@ const DealController = (io) => {
           return socket.emit("error", { message: "SwapRequest not found" });
         }
     
-        delete deal.completedForm;
+        await Deal.updateOne({ _id: dealId }, { $set: { completedForm: [] } });
         deal.continuation.status = "approved";
         deal.form.meetingDate = '';
         deal.form2.meetingDate = '';

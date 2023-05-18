@@ -147,6 +147,10 @@ const dealSchema = new mongoose.Schema({
     },
   },
   reschedule: {
+    previousStatus: {
+      type: String,
+      enum: ["confirmed", "half_completed"]
+    },
     form: {
       skill: {
         type: String,

@@ -20,7 +20,7 @@ async function checkAndUpdateDeals(io) {
     const updateDealStatus = async (deal, formPath1, formPath2, newStatus, io) => {
       const form1 = getNestedObject(deal, formPath1);
       const form2 = getNestedObject(deal, formPath2);
-
+    
       const updateStatusIfCompleted = async (form, formPath) => {
         if (!form.isCompleted && isDealCompleted(form)) {
           await Deal.updateOne(
@@ -31,18 +31,21 @@ async function checkAndUpdateDeals(io) {
               [`${formPath}.isCompleted`]: true,
             }
           );
-
+    
           // отправить событие сокета
           const updatedDeal = await Deal.findById(deal._id);
           io.emit('dealUpdated', updatedDeal);
         }
       };
-
+    
       await updateStatusIfCompleted(form1, formPath1);
       await updateStatusIfCompleted(form2, formPath2);
-
-      // Если сделка завершена, завершить соответствующий swapRequest
-      if (newStatus === 'completed') {
+    
+      // Если обе формы завершены, завершить соответствующий swapRequest
+      const updatedDeal = await Deal.findById(deal._id);
+      const completedForms = updatedDeal.completedForm;
+      
+      if (completedForms.includes(formPath1) && completedForms.includes(formPath2) && newStatus === 'completed') {
         try {
           await SwapRequest.findByIdAndUpdate(deal.swapRequestId, { status: 'completed' });
       
@@ -61,7 +64,7 @@ async function checkAndUpdateDeals(io) {
               },
               { 'skillsToLearn.$.isActive': false }
             );
-
+    
             const updatedUser = await User.findById(participant);
             io.emit('userUpdated', updatedUser);
           }
