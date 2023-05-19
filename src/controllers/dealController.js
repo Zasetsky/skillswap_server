@@ -108,7 +108,7 @@ const DealController = (io) => {
         const rescheduleForm2Matches = deal.reschedule.form2 && Object.keys(rescheduleFormData2).every(field => rescheduleFormData2[field] === deal.reschedule.form2[field]);
 
         if (deal.status === 'confirmed' || deal.status === 'half_completed') {
-          deal.reschedule.previousStatus = deal.status;
+          deal.previousStatus = deal.status;
           deal.status = 'reschedule_offer';
 
           deal.reschedule.form = rescheduleFormData1;
@@ -140,30 +140,50 @@ const DealController = (io) => {
     // Подтверждение переноса сделки
     socket.on("confirmReschedule", async (data) => {
       const { dealId } = data;
-
+    
       try {
         const deal = await Deal.findById(dealId);
         if (!deal) {
           return socket.emit("error", { message: "Deal not found" });
         }
-
+    
         if (deal.update.form.meetingDate && deal.update.form.meetingTime && deal.update.form.meetingDuration &&
             deal.update.form2.meetingDate && deal.update.form2.meetingTime && deal.update.form2.meetingDuration) {
-              deal.form = deal.update.form;
-              deal.form2 = deal.update.form2;
-
-              await Deal.updateOne({ _id: dealId }, { $unset: { update: "" } });
+    
+          await Deal.updateOne({ _id: dealId }, { 
+            $set: { 
+              'form.meetingDate': deal.update.form.meetingDate, 
+              'form.meetingTime': deal.update.form.meetingTime, 
+              'form.meetingDuration': deal.update.form.meetingDuration,
+              'form2.meetingDate': deal.update.form2.meetingDate, 
+              'form2.meetingTime': deal.update.form2.meetingTime, 
+              'form2.meetingDuration': deal.update.form2.meetingDuration
+            },
+            $unset: { update: "" }
+          });
         } else {
-              deal.form = deal.reschedule.form;
-              deal.form2 = deal.reschedule.form2;
+          await Deal.updateOne({ _id: dealId }, { 
+            $set: { 
+              'form.meetingDate': deal.reschedule.form.meetingDate, 
+              'form.meetingTime': deal.reschedule.form.meetingTime, 
+              'form.meetingDuration': deal.reschedule.form.meetingDuration,
+              'form2.meetingDate': deal.reschedule.form2.meetingDate, 
+              'form2.meetingTime': deal.reschedule.form2.meetingTime, 
+              'form2.meetingDuration': deal.reschedule.form2.meetingDuration
+            },
+            $unset: { reschedule: "" }
+          });
         }
-
-        await Deal.updateOne({ _id: dealId }, { $unset: { reschedule: "" } });
-
-        deal.status = deal.reschedule.previousStatus === 'half_completed' ? 'half_completed_confirmed_reschedule' : 'confirmed_reschedule';
-
-        await deal.save();
-        socket.emit("rescheduleConfirmed", deal);
+    
+        await Deal.updateOne({ _id: dealId }, {
+          $set: {
+            status: deal.previousStatus === 'half_completed' ? 'half_completed_confirmed_reschedule' : 'confirmed_reschedule'
+          }
+        });
+    
+        const updatedDeal = await Deal.findById(dealId);
+    
+        socket.emit("rescheduleConfirmed", updatedDeal);
       } catch (error) {
         socket.emit("error", { message: "Error confirming reschedule" });
       }
