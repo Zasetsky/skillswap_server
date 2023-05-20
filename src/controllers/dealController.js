@@ -1,5 +1,6 @@
 const Deal = require('../models/deal');
 const User = require('../models/user');
+const Chat = require('../models/chat');
 const SwapRequest = require('../models/swapRequest');
 const socketAuthMiddleware = require('../middlewares/socketAuthMiddleware');
 
@@ -206,17 +207,20 @@ const DealController = (io) => {
       const { chatId } = data;
 
       try {
-        const deal = await Deal.findOne({ chatId });
+        const deal = await Deal.find({ chatId })
+                               .sort({ createdAt: -1 })
+                               .limit(1);
 
-        if (!deal) {
+        if (!deal || deal.length === 0) {
           return socket.emit("error", { message: "Deal not found" });
         }
 
-        socket.emit("currentDeal", deal);
+        socket.emit("currentDeal", deal[0]);
       } catch (error) {
         socket.emit("error", { message: "Error fetching current deal" });
       }
     });
+
 
 
     // Подтверждение сделки
@@ -334,33 +338,51 @@ const DealController = (io) => {
       const { dealId } = data;
     
       try {
-        const deal = await Deal.findById(dealId);
-        const swapRequest = await SwapRequest.findOne({ dealId: dealId});
+        const oldDeal = await Deal.findById(dealId);
+        const oldSwapRequest = await SwapRequest.findOne({ dealId: dealId });
     
-        if (!deal) {
+        if (!oldDeal) {
           return socket.emit("error", { message: "Deal not found" });
         }
     
-        if (!swapRequest) {
+        if (!oldSwapRequest) {
           return socket.emit("error", { message: "SwapRequest not found" });
         }
     
-        await Deal.updateOne({ _id: dealId }, { $set: { completedForm: [] } });
-        deal.continuation.status = "approved";
-        deal.form.meetingDate = '';
-        deal.form2.meetingDate = '';
-        deal.form.isCompleted = false;
-        deal.form2.isCompleted = false;
-        deal.status = "not_started";
-        swapRequest.status = "accepted"
+        // Создаем новый SwapRequest
+        let swapRequestData = {...oldSwapRequest._doc};
+        delete swapRequestData._id;
     
-        await deal.save();
-        await swapRequest.save();
+        const newSwapRequest = new SwapRequest({
+          ...swapRequestData,
+          status: 'accepted',
+          createdAt: Date.now(),
+        });
+        await newSwapRequest.save();
     
-        const skillsToTeachId = swapRequest.senderData.skillsToTeach[0]._id;
-        const skillsToLearnId = swapRequest.senderData.skillsToLearn[0]._id;
+        // Создаем новую сделку
+        const newDeal = new Deal({
+          participants: oldDeal.participants,
+          chatId: oldDeal.chatId,
+          swapRequestId: newSwapRequest._id,
+          createdAt: Date.now(),
+        });
+        await newDeal.save();
     
-        for (let participant of deal.participants) {
+        newSwapRequest.dealId = newDeal._id;
+        await newSwapRequest.save();
+
+        const chat = await Chat.findOne({ _id: oldDeal.chatId });
+        console.log(chat);
+        if (chat) {
+          chat.swapRequestIds.push(newSwapRequest._id);
+          await chat.save();
+        }
+    
+        const skillsToTeachId = oldSwapRequest.senderData.skillsToTeach[0]._id;
+        const skillsToLearnId = oldSwapRequest.senderData.skillsToLearn[0]._id;
+    
+        for (let participant of oldDeal.participants) {
           await User.updateMany(
             { 
               _id: participant, 
@@ -373,8 +395,9 @@ const DealController = (io) => {
           socket.emit('userUpdated', updatedUser);
         }
     
-        socket.emit("continuationApproved", deal);
+        socket.emit("continuationApproved", newDeal);
       } catch (error) {
+        console.error(error); // Добавляем более подробное логирование ошибок
         socket.emit("error", { message: "Error approving continuation" });
       }
     });

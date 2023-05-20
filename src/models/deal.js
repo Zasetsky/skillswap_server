@@ -34,7 +34,6 @@ const dealSchema = new mongoose.Schema({
       "reschedule_offer_update",
       "confirmed_reschedule",
       "cancelled",
-      "in_progress",
       "half_completed",
       "half_completed_confirmed_reschedule",
       "completed",

@@ -8,8 +8,8 @@ const chatSchema = new mongoose.Schema({
       required: true,
     },
   ],
-  swapRequestId: {
-    type: String,
+  swapRequestIds: {
+    type: [String],
     required: true,
   },
   messages: [

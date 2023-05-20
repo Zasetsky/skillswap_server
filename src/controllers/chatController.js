@@ -18,7 +18,7 @@ const socketChatController  = (io) => {
           return socket.emit('error', { message: 'Swap request is rejected, cannot create or return chat.' });
         }
     
-        const existingChat = await Chat.findOne({ swapRequestId });
+        const existingChat = await Chat.findOne({ swapRequestIds: swapRequestId });
     
         if (existingChat) {
           return socket.emit("chat", existingChat);
@@ -26,7 +26,7 @@ const socketChatController  = (io) => {
     
         const newChat = await Chat.create({
           participants: [receiverId, senderId],
-          swapRequestId: swapRequestId,
+          swapRequestIds: [swapRequestId],
           messages: [
             {
               sender: senderId,
