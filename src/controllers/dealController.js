@@ -13,27 +13,30 @@ const DealController = (io) => {
     // Создание сделки
     socket.on("createOrGetCurrentDeal", async (data) => {
       const { participants, chatId, swapRequestId } = data;
-
+    
       try {
-          const existingDeal = await Deal.findOne({ chatId });
-          const swapRequest = await SwapRequest.findById(swapRequestId);
-
-          if (existingDeal) {
-              socket.emit("deal", existingDeal);
-          } else {
-              const newDeal = new Deal({
-                  participants,
-                  chatId,
-                  swapRequestId,
-              });
-  
-              await newDeal.save();
-
-              swapRequest.dealId = newDeal._id;
-              await swapRequest.save();
-
-              socket.emit("deal", newDeal);
-          }
+        const existingDeal = await Deal.find({ chatId })
+                                       .sort({ createdAt: -1 })
+                                       .limit(1);
+    
+        const swapRequest = await SwapRequest.findById(swapRequestId);
+    
+        if (existingDeal && existingDeal.length > 0) {
+            socket.emit("deal", existingDeal[0]);
+        } else {
+            const newDeal = new Deal({
+                participants,
+                chatId,
+                swapRequestId,
+            });
+    
+            await newDeal.save();
+    
+            swapRequest.dealId = newDeal._id;
+            await swapRequest.save();
+    
+            socket.emit("deal", newDeal);
+        }
       } catch (error) {
           socket.emit("error", { message: "Error creating or fetching deal" });
       }

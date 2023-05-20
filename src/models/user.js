@@ -6,11 +6,11 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 100,
   },
-  firstName: {
+  firstname: {
     type: String,
     default: '',
   },
-  lastName: {
+  lastname: {
     type: String,
     default: '',
   },

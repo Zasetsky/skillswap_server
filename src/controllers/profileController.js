@@ -6,11 +6,11 @@ const path = require('path');
 
 exports.updateProfile = async (req, res) => {
   try {
-    const { firstName, lastName, bio } = req.body;
+    const { firstname, lastname, bio } = req.body;
     const userId = req.userId;
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { firstName, lastName, bio },
+      { firstname, lastname, bio },
       { new: true, omitUndefined: true }
     ).select('-password');
 
@@ -39,8 +39,8 @@ exports.getProfile = async (req, res) => {
     res.json({
       user: {
         id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstname: user.firstname,
+        lastname: user.lastname,
         bio: user.bio,
         avatar: user.avatar,
         skillsToTeach: user.skillsToTeach,
