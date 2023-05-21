@@ -2,8 +2,11 @@ const SwapRequest = require('../models/swapRequest');
 const User = require('../models/user');
 const socketAuthMiddleware = require('../middlewares/socketAuthMiddleware');
 
+let activeSockets = {};
+
 const swapRequestController = (io) => {
   io.use(socketAuthMiddleware).on("connection", (socket) => {
+    activeSockets[socket.userId] = socket;
     console.log("User connected to swap requests");
 
     // Отправка запроса на обмен
@@ -26,9 +29,15 @@ const swapRequestController = (io) => {
         const skillId = receiverData.skillsToLearn._id;
         
         await User.updateOne({ _id: senderId, "skillsToLearn._id": skillId }, { $set: { "skillsToLearn.$.isActive": true } });
-
         // Отправляем уведомление об успешной отправке запроса на обмен
-        socket.emit("swapRequestSent", { status: 200, message: "Swap request sent successfully" });
+        const receiverSocket = activeSockets[receiverId];
+        const senderSocket = activeSockets[senderId];
+        if (receiverSocket) {
+          receiverSocket.emit("swapRequestReceived", { status: 200, message: "Swap request received successfully" });
+        }
+        if (senderSocket) {
+          senderSocket.emit("swapRequestSent", { status: 200, message: "Swap request sent successfully" });
+        }
       } catch (error) {
         console.error("Error sending swap request:", error);
         socket.emit("swapRequestError", { status: 500, error: "Error sending swap request" });
@@ -142,7 +151,7 @@ const swapRequestController = (io) => {
       try {
         const currentUserId = socket.userId;
         const swapRequests = await SwapRequest.find({ $or: [{ senderId: currentUserId }, { receiverId: currentUserId }] });
-    
+        
         console.log("Получены все запросы на обмен для текущего пользователя");
         socket.emit("allSwapRequests", swapRequests);
       } catch (error) {
