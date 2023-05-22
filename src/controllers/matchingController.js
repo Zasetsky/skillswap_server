@@ -1,54 +1,37 @@
+const mongoose = require('mongoose');
 const User = require('../models/user');
 
 exports.findMatchingUsers = async (req, res) => {
-  const currentUserId = req.body.currentUserId;
-  console.log('User: ', currentUserId);
   try {
-    const currentUser = await User.findById(currentUserId);
+    const skillId = req.body.skillId;
+    const currentUserId = req.userId;
 
-    if (!currentUser) {
-      return res.status(404).json({ message: 'Пользователь не найден' });
+    if (!mongoose.Types.ObjectId.isValid(skillId)) {
+      return res.status(400).json({ message: 'Invalid skill ID' });
     }
 
-    console.log('Current user:', currentUser);
+    // Получить текущего пользователя и его skillsToTeach
+    const currentUser = await User.findById(currentUserId).select('skillsToTeach');
+    const currentUserSkillsToTeachIds = currentUser.skillsToTeach.map(skill => skill._id.toString());
 
-    const allUsers = await User.find({});
-    console.log('All users:', allUsers);
+    // Искать пользователей, у которых есть skillsToTeach для полученного навыка
+    // и skillsToLearn, которые у текущего пользователя есть в skillsToTeach
+    const matchingUsers = await User.find({
+      _id: { $ne: currentUserId },
+      'skillsToTeach._id': skillId,
+      'skillsToLearn._id': { $in: currentUserSkillsToTeachIds }
+    }).select('-password -email');
 
-    const matchingUsers = allUsers.filter((user) => {
-      if (user._id.toString() === currentUser._id.toString()) {
-        return false;
-      }
+    if (matchingUsers.length === 0) {
+      return res.status(200).json({ matchingUsers: [] });
+    }
 
-      return user.skillsToTeach.some((teachSkill) =>
-        currentUser.skillsToLearn.some((learnSkill) => {
-          return (
-            learnSkill.theme === teachSkill.theme &&
-            learnSkill.category === teachSkill.category &&
-            learnSkill.subCategory === teachSkill.subCategory &&
-            learnSkill.skill === teachSkill.skill &&
-            user.skillsToLearn.some((userLearnSkill) => {
-              return (
-                currentUser.skillsToTeach.some((currentUserTeachSkill) => {
-                  return (
-                    userLearnSkill.theme === currentUserTeachSkill.theme &&
-                    userLearnSkill.category === currentUserTeachSkill.category &&
-                    userLearnSkill.subCategory === currentUserTeachSkill.subCategory &&
-                    userLearnSkill.skill === currentUserTeachSkill.skill
-                  );
-                })
-              );
-            })
-          );
-        })
-      );
-    });
-
-    console.log('Matching users:', matchingUsers);
-
-    res.status(200).json(matchingUsers);
+    res.status(200).json({ matchingUsers });
+    console.log(matchingUsers);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Ошибка сервера при поиске подходящих пользователей' });
+    console.error('Error in findMatchingUsers:', error);
+    res.status(500).json({ message: 'Server error', error });
   }
 };
+
+

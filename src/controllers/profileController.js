@@ -39,12 +39,12 @@ exports.getProfile = async (req, res) => {
     res.json({
       user: {
         id: user._id,
-        email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
         bio: user.bio,
         avatar: user.avatar,
-        strongSkills: user.strongSkills,
+        skillsToTeach: user.skillsToTeach,
+        skillsToLearn: user.skillsToLearn,
       },
     });
 
@@ -122,19 +122,11 @@ exports.updateAvatar = async (req, res) => {
 
   // Обновление настройки доступности
 
-  exports.updateAvailability = async (req, res) => {
-    console.log('Sending availability update request:', req.body.availability);
-    const { availability } = req.body;
-  
-    if (!availability) {
-      return res.status(400).json({ message: 'Availability is required' });
-    }
-  
+  exports.isPreSetupToggle = async (req, res) => {
     const user = await User.findByIdAndUpdate(
       req.userId,
-      { availability },
-      { new: true }
-    );
+      { isPreSetup: true },
+    ).select('-password');
   
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -143,16 +135,6 @@ exports.updateAvatar = async (req, res) => {
     // Отправка обновленных данных пользователя
     res.status(200).json({ 
       message: 'Availability updated successfully',
-      user: {
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        avatar: user.avatar,
-        bio: user.bio,
-        skillsToLearn: user.skillsToLearn,
-        skillsToTeach: user.skillsToTeach,
-        availability: user.availability,
-        _id: user._id,
-      },
+      user
     });
   };

@@ -1,7 +1,6 @@
 const express = require('express');
 const authController = require('../controllers/authController');
 const authMiddleware = require('../middlewares/authMiddleware');
-const uploadMiddleware = require('../middlewares/uploadMiddleware');
 const router = express.Router();
 
 // Регистрация пользователя

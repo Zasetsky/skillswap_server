@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
+  karma: {
+    type: Number,
+    default: 100,
+  },
   firstName: {
     type: String,
     default: '',
@@ -37,6 +41,7 @@ const userSchema = new mongoose.Schema({
       category: String,
       subCategory: String,
       skill: String,
+      isActive: Boolean,
     },
   ],
   skillsToTeach: [
@@ -45,12 +50,49 @@ const userSchema = new mongoose.Schema({
       category: String,
       subCategory: String,
       skill: String,
+      rating: {
+        type: Number,
+        default: 0,
+      },
+      isRated: {
+        type: Boolean,
+        default: false,
+      }
     },
   ],
-  availability: {
-    type: String,
-    default: '',
+  reliabilityRating: {
+    type: Number,
+    default: 5,
+    min: 0,
+    max: 5,
   },
+  loyaltyRating : {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5,
+  },
+  totalSkillsRating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5,
+  },
+  lastSeen: {
+    type: Date,
+  },
+  isOnline: {
+    type: Boolean,
+    default: false,
+  },
+  timeZoneOffset: {
+    type: Number,
+    default: 0,
+  },
+  isPreSetup: {
+    type: Boolean,
+    default: false,
+  }
 });
 
 userSchema.pre('save', async function (next) {
