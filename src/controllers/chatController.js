@@ -7,6 +7,9 @@ const socketChatController  = (io) => {
   io.use(socketAuthMiddleware).on("connection", (socket) => {
     console.log("User connected to chat");
 
+    // Присоединяемся к комнате с именем, соответствующим userId
+    socket.join(socket.userId);
+
     // Создание чата или возврат существующего
     socket.on("createOrGetCurrentChat", async (data) => {
       const { receiverId, senderId, swapRequestId } = data;
@@ -15,13 +18,13 @@ const socketChatController  = (io) => {
         const swapRequest = await SwapRequest.findOne({ _id: swapRequestId });
     
         if (swapRequest.status === 'rejected') {
-          return socket.emit('error', { message: 'Swap request is rejected, cannot create or return chat.' });
+          return io.to(socket.userId).emit('error', { message: 'Swap request is rejected, cannot create or return chat.' });
         }
     
         const existingChat = await Chat.findOne({ swapRequestIds: swapRequestId });
     
         if (existingChat) {
-          return socket.emit("chat", existingChat);
+          return io.to(socket.userId).emit("chat", existingChat);
         }
     
         const newChat = await Chat.create({
@@ -35,9 +38,9 @@ const socketChatController  = (io) => {
           ],
         });
     
-        socket.emit("chat", newChat);
+        io.to(socket.userId).emit("chat", newChat);
       } catch (error) {
-        socket.emit("error", { message: 'Error creating chat', error });
+        io.to(socket.userId).emit("error", { message: 'Error creating chat', error });
       }
     });
 

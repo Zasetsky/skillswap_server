@@ -31,7 +31,7 @@ const swapRequestController = (io) => {
         await User.updateOne({ _id: senderId, "skillsToLearn._id": skillId }, { $set: { "skillsToLearn.$.isActive": true } });
         
         // Отправляем уведомление об успешной отправке запроса на обмен
-        io.to(receiverId).emit("swapRequestReceived", { status: 200, message: "Swap request received successfully" });
+        io.to(receiverId).emit("swapRequestSent", { status: 200, message: "Swap request received successfully" });
         io.to(senderId).emit("swapRequestSent", { status: 200, message: "Swap request sent successfully" });
 
       } catch (error) {
@@ -67,7 +67,7 @@ const swapRequestController = (io) => {
         await swapRequest.save();
 
         io.to(swapRequest.receiverId.toString()).emit("swapRequestAccepted", { status: 200, message: 'Swap request accepted' });
-        io.to(swapRequest.senderId.toString()).emit("listenSwapRequestAccepted", { status: 200, message: 'Swap request accepted' });
+        io.to(swapRequest.senderId.toString()).emit("swapRequestAccepted", { status: 200, message: 'Swap request accepted' });
       } catch (error) {
         console.error('Error in acceptSwapRequest:', error);
         io.to(socket.userId).emit("acceptSwapRequestError", { status: 500, message: 'Server error', error });
@@ -102,7 +102,7 @@ const swapRequestController = (io) => {
         await swapRequest.save();
     
         io.to(swapRequest.receiverId.toString()).emit("swapRequestRejected", { status: 200, message: "SwapRequest statuses changed on'rejected'" });
-        io.to(swapRequest.senderId.toString()).emit("listenSwapRequestRejected", { status: 200, message: "SwapRequest statuses changed on'rejected'" });
+        io.to(swapRequest.senderId.toString()).emit("swapRequestRejected", { status: 200, message: "SwapRequest statuses changed on'rejected'" });
       } catch (error) {
         console.error(error);
         socket.emit("rejectSwapRequestError", { status: 500, error: "Error rejecting swap request" });
@@ -136,8 +136,8 @@ const swapRequestController = (io) => {
 
         if (deletedSwapRequest) {
           console.log("Запрос на обмен успешно удалён");
-          console.log(swapRequest.senderId.toString());
-          io.to(swapRequest.receiverId.toString()).emit("listenSwapRequestDeleted", { status: 200, message: 'Swap request deleted' });
+
+          io.to(swapRequest.receiverId.toString()).emit("swapRequestDeleted", { status: 200, message: 'Swap request deleted' });
           io.to(swapRequest.senderId.toString()).emit("swapRequestDeleted", { status: 200, message: 'Swap request deleted' });
         } else {
           console.log("Ошибка при удалении запроса на обмен");
