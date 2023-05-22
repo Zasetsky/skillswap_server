@@ -11,9 +11,9 @@ const swapRequestController = (io) => {
 
     // Отправка запроса на обмен
     socket.on("sendSwapRequest", async (data) => {
+      const { receiverId, senderId, senderData, receiverData } = data;
+      
       try {
-        const { receiverId, senderId, senderData, receiverData } = data;
-
         // Создаем новый объект запроса на обмен для получателя с новым ObjectId
         const newSwapRequest = new SwapRequest({
           senderId,
@@ -36,7 +36,7 @@ const swapRequestController = (io) => {
 
       } catch (error) {
         console.error("Error sending swap request:", error);
-        io.to(socket.userId).emit("swapRequestError", { status: 500, error: "Error sending swap request" });
+        socket.emit("swapRequestError", { status: 500, error: "Error sending swap request" });
       }
     });
 
@@ -49,7 +49,7 @@ const swapRequestController = (io) => {
         // Найти запрос на обмен с заданным swapRequestId и обновить статус на "accepted"
         const swapRequest = await SwapRequest.findById(swapRequestId);
         if (!swapRequest) {
-          return io.to(socket.userId).emit("swapRequestError", { status: 404, message: 'Swap request not found' });
+          return socket.emit("swapRequestError", { status: 404, message: 'Swap request not found' });
         }
         swapRequest.status = 'accepted';
 
@@ -70,7 +70,7 @@ const swapRequestController = (io) => {
         io.to(swapRequest.senderId.toString()).emit("swapRequestAccepted", { status: 200, message: 'Swap request accepted' });
       } catch (error) {
         console.error('Error in acceptSwapRequest:', error);
-        io.to(socket.userId).emit("acceptSwapRequestError", { status: 500, message: 'Server error', error });
+        socket.emit("acceptSwapRequestError", { status: 500, message: 'Server error', error });
       }
     });
 
@@ -121,7 +121,7 @@ const swapRequestController = (io) => {
     
         if (!swapRequest) {
           console.log("Ошибка при удалении запроса на обмен: запрос не найден");
-          io.to(socket.userId).emit("deleteSwapRequestError", { status: 500, error: "Error deleting swap request: request not found" });
+          socket.emit("deleteSwapRequestError", { status: 500, error: "Error deleting swap request: request not found" });
           return;
         }
     
@@ -141,11 +141,11 @@ const swapRequestController = (io) => {
           io.to(swapRequest.senderId.toString()).emit("swapRequestDeleted", { status: 200, message: 'Swap request deleted' });
         } else {
           console.log("Ошибка при удалении запроса на обмен");
-          io.to(socket.userId).emit("deleteSwapRequestError", { status: 500, error: "Error deleting swap request" });
+          socket.emit("deleteSwapRequestError", { status: 500, error: "Error deleting swap request" });
         }
       } catch (error) {
         console.error("Ошибка при удалении запроса на обмен:", error);
-        io.to(socket.userId).emit("deleteSwapRequestError", { status: 500, error: "Error deleting swap request" });
+        socket.emit("deleteSwapRequestError", { status: 500, error: "Error deleting swap request" });
       }
     });
 

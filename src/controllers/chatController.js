@@ -18,13 +18,13 @@ const socketChatController  = (io) => {
         const swapRequest = await SwapRequest.findOne({ _id: swapRequestId });
     
         if (swapRequest.status === 'rejected') {
-          return io.to(socket.userId).emit('error', { message: 'Swap request is rejected, cannot create or return chat.' });
+          return socket.emit('error', { message: 'Swap request is rejected, cannot create or return chat.' });
         }
     
         const existingChat = await Chat.findOne({ swapRequestIds: swapRequestId });
     
         if (existingChat) {
-          return io.to(socket.userId).emit("chat", existingChat);
+          return socket.emit("chat", existingChat);
         }
     
         const newChat = await Chat.create({
@@ -37,10 +37,12 @@ const socketChatController  = (io) => {
             },
           ],
         });
-    
-        io.to(socket.userId).emit("chat", newChat);
+        console.log(receiverId);
+        io.to(receiverId).emit("newChat", [newChat]);
+        io.to(senderId).emit("newChat", [newChat]);
+        socket.emit("chat", newChat);
       } catch (error) {
-        io.to(socket.userId).emit("error", { message: 'Error creating chat', error });
+        socket.emit("error", { message: 'Error creating chat', error });
       }
     });
 
@@ -48,11 +50,11 @@ const socketChatController  = (io) => {
     // Отправка сообщений
     socket.on("sendMessage", async (data) => {
       const { chatId, type, content, sender } = data;
-
+    
       if (!content) {
         return socket.emit("error", { message: 'Content is required' });
       }
-
+    
       try {
         const newMessage = {
           _id: new mongoose.Types.ObjectId(),
@@ -60,14 +62,20 @@ const socketChatController  = (io) => {
           type: type,
           content
         };
-
-        await Chat.findByIdAndUpdate(
-          chatId,
-          { $push: { messages: newMessage } },
-          { new: true }
-        );
-
-        socket.emit("message", chatId);
+    
+        const chat = await Chat.findById(chatId);
+    
+        if (!chat) {
+          return socket.emit("error", { message: 'Chat not found' });
+        }
+    
+        chat.messages.push(newMessage);
+        await chat.save();
+    
+        for (let participant of chat.participants) {
+          io.to(participant.toString()).emit("message", chatId);
+        }
+    
       } catch (error) {
         socket.emit("error", { message: 'Error sending message', error });
       }
