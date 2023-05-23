@@ -6,9 +6,6 @@ const swapRequestController = (io) => {
   io.use(socketAuthMiddleware).on("connection", (socket) => {
     console.log("User connected to swap requests");
 
-    // Присоединяемся к комнате с именем, соответствующим userId
-    socket.join(socket.userId);
-
     // Отправка запроса на обмен
     socket.on("sendSwapRequest", async (data) => {
       const { receiverId, senderId, senderData, receiverData } = data;

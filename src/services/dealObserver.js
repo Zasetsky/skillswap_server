@@ -34,7 +34,10 @@ async function checkAndUpdateDeals(io) {
     
           // отправить событие сокета
           const updatedDeal = await Deal.findById(deal._id);
-          io.emit('dealUpdated', updatedDeal);
+
+          for (let participant of deal.participants) {
+            io.to(participant.toString()).emit('dealUpdated', updatedDeal);
+          }
         }
       };
     
@@ -66,10 +69,10 @@ async function checkAndUpdateDeals(io) {
             );
     
             const updatedUser = await User.findById(participant);
-            io.emit('userUpdated', updatedUser);
+            io.to(participant.toString()).emit('userUpdated', updatedUser);
+
+            io.to(participant.toString()).emit('swapRequestUpdated', updatedSwapRequest);
           }
-      
-          io.emit('swapRequestUpdated', updatedSwapRequest);
         } catch (error) {
           console.error(`Ошибка при завершении swapRequest для сделки ${deal._id}:`, error);
         }

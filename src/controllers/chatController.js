@@ -7,9 +7,6 @@ const socketChatController  = (io) => {
   io.use(socketAuthMiddleware).on("connection", (socket) => {
     console.log("User connected to chat");
 
-    // Присоединяемся к комнате с именем, соответствующим userId
-    socket.join(socket.userId);
-
     // Создание чата или возврат существующего
     socket.on("createOrGetCurrentChat", async (data) => {
       const { receiverId, senderId, swapRequestId } = data;

@@ -18,6 +18,9 @@ const socketAuthMiddleware = (socket, next) => {
 
     // Сохраняем userId в объекте сокета
     socket.userId = req.userId;
+
+    // Присоединяемся к комнате с именем, соответствующим userId
+    socket.join(socket.userId);
     next();
   });
 };
