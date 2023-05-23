@@ -1,6 +1,7 @@
 const Deal = require('../models/deal');
 const User = require('../models/user');
 const SwapRequest = require('../models/swapRequest');
+const meetingDetails = require('../helpers/meetingDetails');
 
 async function checkAndUpdateDeals(io) {
   try {
@@ -34,6 +35,9 @@ async function checkAndUpdateDeals(io) {
     
           // отправить событие сокета
           const updatedDeal = await Deal.findById(deal._id);
+          const swapRequest = await SwapRequest.findById(updatedDeal.swapRequestId);
+
+          meetingDetails.sendMeetingDetails(updatedDeal, updatedDeal.chatId, swapRequest, io);
 
           for (let participant of deal.participants) {
             io.to(participant.toString()).emit('dealUpdated', updatedDeal);

@@ -46,7 +46,7 @@ const socketChatController  = (io) => {
 
     // Отправка сообщений
     socket.on("sendMessage", async (data) => {
-      const { chatId, type, content, sender } = data;
+      const { chatId, type, content } = data;
     
       if (!content) {
         return socket.emit("error", { message: 'Content is required' });
@@ -55,10 +55,11 @@ const socketChatController  = (io) => {
       try {
         const newMessage = {
           _id: new mongoose.Types.ObjectId(),
-          sender,
+          sender: new mongoose.Types.ObjectId(socket.userId),
           type: type,
           content
         };
+
     
         const chat = await Chat.findById(chatId);
     
@@ -67,6 +68,7 @@ const socketChatController  = (io) => {
         }
     
         chat.messages.push(newMessage);
+
         await chat.save();
     
         for (let participant of chat.participants) {
@@ -74,6 +76,7 @@ const socketChatController  = (io) => {
         }
     
       } catch (error) {
+        // console.log(error);
         socket.emit("error", { message: 'Error sending message', error });
       }
     });

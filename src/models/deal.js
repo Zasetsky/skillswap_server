@@ -65,7 +65,7 @@ const dealSchema = new mongoose.Schema({
   },
   previousStatus: {
     type: String,
-    enum: ["confirmed", "half_completed"]
+    enum: ["confirmed", "half_completed", "confirmed_reschedule", "half_completed_confirmed_reschedule"]
   },
   form: {
     skill: {

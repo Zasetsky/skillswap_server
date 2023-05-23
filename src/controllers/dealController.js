@@ -1,6 +1,7 @@
 const Deal = require('../models/deal');
 const User = require('../models/user');
 const Chat = require('../models/chat');
+const meetingDetails = require('../helpers/meetingDetails');
 const SwapRequest = require('../models/swapRequest');
 const socketAuthMiddleware = require('../middlewares/socketAuthMiddleware');
 
@@ -83,7 +84,9 @@ const DealController = (io) => {
         }
     
         await deal.save();
-        socket.emit("deal", deal);
+        for (let participant of deal.participants) {
+          io.to(participant.toString()).emit("deal", deal);
+        }
       } catch (error) {
         socket.emit("error", { message: "Error updating deal" });
       }
@@ -111,7 +114,9 @@ const DealController = (io) => {
         const rescheduleForm1Matches = deal.reschedule.form && Object.keys(rescheduleFormData1).every(field => rescheduleFormData1[field] === deal.reschedule.form[field]);
         const rescheduleForm2Matches = deal.reschedule.form2 && Object.keys(rescheduleFormData2).every(field => rescheduleFormData2[field] === deal.reschedule.form2[field]);
 
-        if (deal.status === 'confirmed' || deal.status === 'half_completed') {
+        const starterStatuses = ['confirmed', 'half_completed', 'confirmed_reschedule', 'half_completed_confirmed_reschedule'].includes(deal.status);
+
+        if (starterStatuses) {
           deal.previousStatus = deal.status;
           deal.status = 'reschedule_offer';
 
@@ -134,8 +139,12 @@ const DealController = (io) => {
         }
 
         await deal.save();
-        socket.emit("deal", deal);
+
+        for (let participant of deal.participants) {
+          io.to(participant.toString()).emit("deal", deal);
+        }
       } catch (error) {
+        console.log(error);
         socket.emit("error", { message: "Error proposing reschedule" });
       }
     });
@@ -144,7 +153,7 @@ const DealController = (io) => {
     // Подтверждение переноса сделки
     socket.on("confirmReschedule", async (data) => {
       const { dealId } = data;
-    
+
       try {
         const deal = await Deal.findById(dealId);
         if (!deal) {
@@ -178,7 +187,7 @@ const DealController = (io) => {
             $unset: { reschedule: "" }
           });
         }
-    
+
         await Deal.updateOne({ _id: dealId }, {
           $set: {
             status: deal.previousStatus === 'half_completed' ? 'half_completed_confirmed_reschedule' : 'confirmed_reschedule'
@@ -186,8 +195,13 @@ const DealController = (io) => {
         });
     
         const updatedDeal = await Deal.findById(dealId);
-    
-        socket.emit("rescheduleConfirmed", updatedDeal);
+        const swapRequest = await SwapRequest.findById(updatedDeal.swapRequestId);
+
+        meetingDetails.sendMeetingDetails(updatedDeal, updatedDeal.chatId, swapRequest, io);
+
+        for (let participant of deal.participants) {
+          io.to(participant.toString()).emit("rescheduleConfirmed", updatedDeal);
+        }
       } catch (error) {
         socket.emit("error", { message: "Error confirming reschedule" });
       }
@@ -232,6 +246,7 @@ const DealController = (io) => {
     
       try {
         const deal = await Deal.findById(dealId);
+
         if (!deal) {
           return socket.emit("error", { message: "Deal not found" });
         }
@@ -248,8 +263,15 @@ const DealController = (io) => {
         deal.createdAt = new Date();
     
         await deal.save();
-        socket.emit("dealConfirmed", deal);
+        const swapRequest = await SwapRequest.findById(updatedDeal.swapRequestId);
+
+        meetingDetails.sendMeetingDetails(deal, deal.chatId, swapRequest, io);
+
+        for (let participant of deal.participants) {
+          io.to(participant.toString()).emit("dealConfirmed", deal);
+        }
       } catch (error) {
+        console.log(error);
         socket.emit("error", { message: "Error confirming deal" });
       }
     });
@@ -376,7 +398,7 @@ const DealController = (io) => {
         await newSwapRequest.save();
 
         const chat = await Chat.findOne({ _id: oldDeal.chatId });
-        console.log(chat);
+
         if (chat) {
           chat.swapRequestIds.push(newSwapRequest._id);
           await chat.save();
