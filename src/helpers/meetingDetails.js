@@ -44,8 +44,8 @@ exports.sendMeetingDetails = async (deal, chatId, swapRequest, io) => {
           type: 'meeting_details',
           content: meetingDetails,
           sender: meetingDetails === deal.form
-            ? swapRequest.senderId
-            : swapRequest.receiverId
+            ? swapRequest.receiverId
+            : swapRequest.senderId
         };
 
         // console.log(newMessage);

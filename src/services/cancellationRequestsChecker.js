@@ -1,7 +1,8 @@
 const Deal = require('../models/deal');
 const User = require('../models/user');
+const SwapRequest = require('../models/swapRequest');
 
-async function checkPendingCancellations() {
+async function checkPendingCancellations(io) {
   const dealsWithPendingCancellation = await Deal.find({
     'cancellation.status': 'pending',
   });
@@ -9,29 +10,40 @@ async function checkPendingCancellations() {
   const now = new Date();
   for (const deal of dealsWithPendingCancellation) {
     const cancellationRequestTime = deal.cancellation.timestamp;
-    const timeDifferenceInHours = (now - cancellationRequestTime) / (1000 * 60 * 60);
-    if (timeDifferenceInHours >= 24) {
+    const timeDifferenceInHours = (now - cancellationRequestTime) / (1000 * 60);
+    if (timeDifferenceInHours >= 1) {
       // Отменить сделку и снизить карму получателя
-      await cancelDealAndDecreaseReceiverKarma(deal);
+      await cancelDealAndDecreaseReceiverKarma(deal, io);
     }
   }
 }
 
-async function cancelDealAndDecreaseReceiverKarma(deal) {
-  // Обновите статус сделки
-  deal.status = 'cancelled';
-  deal.cancellation.status = 'cancelled';
-  await deal.save();
+async function cancelDealAndDecreaseReceiverKarma(deal, io) {
+  try {
+    const swapRequest = await SwapRequest.findById(deal.swapRequestId);
 
-  // Найдите получателя путем исключения отправителя из массива participants
-  const receiverId = deal.participants.find(
-    (participantId) => !participantId.equals(deal.sender)
-  );
+    deal.status = 'cancelled';
+    swapRequest.status = "cancelled";
+    deal.cancellation.status = 'cancelled';
+    await deal.save();
+    await swapRequest.save();
 
-  // Найдите получателя в базе данных и уменьшите его карму на 10
-  const receiver = await User.findById(receiverId);
-  receiver.karma -= 10;
-  await receiver.save();
+    for (let participant of deal.participants) {
+      io.to(participant.toString()).emit('dealUpdated', deal);
+      io.to(participant.toString()).emit('swapRequestUpdated', swapRequest);
+    }
+
+    const receiverId = deal.participants.find(
+      (participantId) => !participantId.equals(deal.sender)
+    );
+
+    const receiver = await User.findById(receiverId);
+    receiver.karma -= 10;
+    await receiver.save();
+
+  } catch (error) {
+    console.log(error);
+  }
 }
 
 module.exports = checkPendingCancellations;

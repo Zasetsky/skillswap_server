@@ -284,16 +284,20 @@ const DealController = (io) => {
       try {
         const deal = await Deal.findById(dealId);
         if (!deal) {
-          return socket.emit("error", { message: "Сделка не найдена" });
+          return socket.emit("error", { message: "Deal not found" });
         }
 
         deal.sender = socket.userId;
         deal.cancellation = { reason, status: "pending", timestamp};
 
         await deal.save();
-        socket.emit("cancellationRequested", deal);
+
+        for (let participant of deal.participants) {
+          io.to(participant.toString()).emit("cancellationRequested", deal);
+        }
+        
       } catch (error) {
-        socket.emit("error", { message: "Ошибка при запросе отмены" });
+        socket.emit("error", { message: "Error requestCancellation deal" });
       }
     });
 
@@ -301,21 +305,38 @@ const DealController = (io) => {
     // Подтверждение отмены
     socket.on("approveCancellation", async (data) => {
       const { dealId } = data;
-
+    
       try {
         const deal = await Deal.findById(dealId);
         if (!deal) {
-          return socket.emit("error", { message: "Сделка не найдена" });
+          return socket.emit("error", { message: "Deal not found" });
         }
-
+    
+        const swapRequest = await SwapRequest.findById(deal.swapRequestId);
+        if (!swapRequest) {
+          return socket.emit("error", { message: "SwapRequest not found" });
+        }
+    
+        if (deal.status === 'cancelled' || swapRequest.status === 'cancelled') {
+          return socket.emit("error", { message: "Deal or SwapRequest is already cancelled" });
+        }
+    
         deal.status = "cancelled";
+        swapRequest.status = "cancelled";
         deal.cancellation.status = "approved";
+        await swapRequest.save();
         await deal.save();
-        socket.emit("cancellationApproved", deal);
+    
+        for (let participant of deal.participants) {
+          io.to(participant.toString()).emit("cancellationApproved", deal);
+          io.to(participant.toString()).emit('swapRequestUpdated', swapRequest);
+        }
+    
       } catch (error) {
-        socket.emit("error", { message: "Ошибка при подтверждении отмены" });
+        console.error(error);
+        socket.emit("error", { message: "Error approveCancellation deal" });
       }
-    });
+    });    
 
 
     // Отклонение отмены
@@ -325,14 +346,17 @@ const DealController = (io) => {
       try {
         const deal = await Deal.findById(dealId);
         if (!deal) {
-          return socket.emit("error", { message: "Сделка не найдена" });
+          return socket.emit("error", { message: "Deal not found" });
         }
 
         deal.cancellation.status = "rejected";
         await deal.save();
-        socket.emit("cancellationRejected", deal);
+
+        for (let participant of deal.participants) {
+          io.to(participant.toString()).emit("cancellationRequested", deal);
+        }
       } catch (error) {
-        socket.emit("error", { message: "Ошибка при отклонении отмены" });
+        socket.emit("error", { message: "Error rejectCancellation deal" });
       }
     });
 
@@ -351,7 +375,10 @@ const DealController = (io) => {
         deal.continuation.status = "true";
     
         await deal.save();
-        socket.emit("continuationRequested", deal);
+
+        for (let participant of deal.participants) {
+          io.to(participant.toString()).emit("continuationRequested", deal);
+        }
       } catch (error) {
         socket.emit("error", { message: "Error requesting continuation" });
       }
@@ -419,8 +446,10 @@ const DealController = (io) => {
           const updatedUser = await User.findById(participant);
           socket.emit('userUpdated', updatedUser);
         }
-    
-        socket.emit("continuationApproved", newDeal);
+
+        for (let participant of newDeal.participants) {
+          io.to(participant.toString()).emit("continuationApproved", newDeal);
+        }
       } catch (error) {
         console.error(error); // Добавляем более подробное логирование ошибок
         socket.emit("error", { message: "Error approving continuation" });
@@ -441,7 +470,10 @@ const DealController = (io) => {
     
         deal.continuation.status = "false";
         await deal.save();
-        socket.emit("continuationRejected", deal);
+
+        for (let participant of deal.participants) {
+          io.to(participant.toString()).emit("continuationRequested", deal);
+        }
       } catch (error) {
         socket.emit("error", { message: "Error approving continuation" });
       }
