@@ -208,6 +208,7 @@ const DealController = (io) => {
     });
 
 
+    // Отказ от переноса сделки
     socket.on("rejectReschedule", async (data) => {
       const { dealId } = data;
 
@@ -216,7 +217,22 @@ const DealController = (io) => {
         if (!deal) {
           return socket.emit("error", { message: "Deal not found" });
         }
+        
+        let updateFields = {};
 
+        if (deal.update.form.meetingDate && deal.update.form.meetingTime && deal.update.form.meetingDuration &&
+          deal.update.form2.meetingDate && deal.update.form2.meetingTime && deal.update.form2.meetingDuration) {
+          // Удаляем поле `update`
+          updateFields = { $unset: { update: "" } };
+        } else {
+          // Удаляем поле `reschedule`
+          updateFields = { $unset: { reschedule: "" } };
+        }
+
+        // Обновляем документ
+        await Deal.updateOne({ _id: dealId }, updateFields);
+
+        // Восстанавливаем статус сделки
         deal.status = deal.previousStatus;
         await deal.save();
 
@@ -224,9 +240,10 @@ const DealController = (io) => {
           io.to(participant.toString()).emit("deal", deal);
         }
       } catch (error) {
-        socket.emit("error", { message: "Error rejectCancellation deal" });
+        socket.emit("error", { message: "Error rejecting rescheduled deal" });
       }
     });
+
 
 
     // Запрос всех сделок пользователя
@@ -309,7 +326,7 @@ const DealController = (io) => {
         }
 
         deal.sender = socket.userId;
-        deal.cancellation = { reason, status: "pending", timestamp};
+        deal.cancellation = { reason, status: "true", timestamp};
 
         await deal.save();
 
@@ -344,7 +361,7 @@ const DealController = (io) => {
     
         deal.status = "cancelled";
         swapRequest.status = "cancelled";
-        deal.cancellation.status = "approved";
+        deal.cancellation.status = "cancelled";
         await swapRequest.save();
         await deal.save();
     
@@ -370,7 +387,7 @@ const DealController = (io) => {
           return socket.emit("error", { message: "Deal not found" });
         }
 
-        deal.cancellation.status = "rejected";
+        deal.cancellation.status = "false";
         await deal.save();
 
         for (let participant of deal.participants) {
@@ -421,6 +438,9 @@ const DealController = (io) => {
         if (!oldSwapRequest) {
           return socket.emit("error", { message: "SwapRequest not found" });
         }
+
+        oldDeal.continuation.status = "continued";
+        await oldDeal.save();
     
         // Создаем новый SwapRequest
         let swapRequestData = {...oldSwapRequest._doc};

@@ -50,13 +50,13 @@ const dealSchema = new mongoose.Schema({
     },
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected", 'cancelled'],
+      enum: ["true", "cancelled", "false"],
     },
   },
   continuation: {
     status: {
       type: String,
-      enum: ["true", "approved", "false"],
+      enum: ["true", "continued", "false"],
     },
   },
   sender: {

@@ -4,7 +4,7 @@ const SwapRequest = require('../models/swapRequest');
 
 async function checkPendingCancellations(io) {
   const dealsWithPendingCancellation = await Deal.find({
-    'cancellation.status': 'pending',
+    'cancellation.status': 'true',
   });
 
   const now = new Date();
