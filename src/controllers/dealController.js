@@ -208,6 +208,27 @@ const DealController = (io) => {
     });
 
 
+    socket.on("rejectReschedule", async (data) => {
+      const { dealId } = data;
+
+      try {
+        const deal = await Deal.findById(dealId);
+        if (!deal) {
+          return socket.emit("error", { message: "Deal not found" });
+        }
+
+        deal.status = deal.previousStatus;
+        await deal.save();
+
+        for (let participant of deal.participants) {
+          io.to(participant.toString()).emit("deal", deal);
+        }
+      } catch (error) {
+        socket.emit("error", { message: "Error rejectCancellation deal" });
+      }
+    });
+
+
     // Запрос всех сделок пользователя
     socket.on("getAllDeals", async () => {
       try {
@@ -263,7 +284,7 @@ const DealController = (io) => {
         deal.createdAt = new Date();
     
         await deal.save();
-        const swapRequest = await SwapRequest.findById(updatedDeal.swapRequestId);
+        const swapRequest = await SwapRequest.findById(deal.swapRequestId);
 
         meetingDetails.sendMeetingDetails(deal, deal.chatId, swapRequest, io);
 
@@ -411,16 +432,24 @@ const DealController = (io) => {
           createdAt: Date.now(),
         });
         await newSwapRequest.save();
-    
+
         // Создаем новую сделку
         const newDeal = new Deal({
           participants: oldDeal.participants,
           chatId: oldDeal.chatId,
           swapRequestId: newSwapRequest._id,
+          form: {
+            meetingTime: oldDeal.form.meetingTime,
+            meetingDuration: oldDeal.form.meetingDuration,
+          },
+          form2: {
+            meetingTime: oldDeal.form2.meetingTime,
+            meetingDuration: oldDeal.form2.meetingDuration,
+          },
           createdAt: Date.now(),
         });
         await newDeal.save();
-    
+
         newSwapRequest.dealId = newDeal._id;
         await newSwapRequest.save();
 
@@ -444,14 +473,12 @@ const DealController = (io) => {
           );
     
           const updatedUser = await User.findById(participant);
-          socket.emit('userUpdated', updatedUser);
-        }
 
-        for (let participant of newDeal.participants) {
+          io.to(participant.toString()).emit('userUpdated', updatedUser);
           io.to(participant.toString()).emit("continuationApproved", newDeal);
         }
       } catch (error) {
-        console.error(error); // Добавляем более подробное логирование ошибок
+        console.error(error);
         socket.emit("error", { message: "Error approving continuation" });
       }
     });

@@ -10,8 +10,8 @@ async function checkPendingCancellations(io) {
   const now = new Date();
   for (const deal of dealsWithPendingCancellation) {
     const cancellationRequestTime = deal.cancellation.timestamp;
-    const timeDifferenceInHours = (now - cancellationRequestTime) / (1000 * 60);
-    if (timeDifferenceInHours >= 1) {
+    const timeDifferenceInHours = (now - cancellationRequestTime) / (1000 * 60 * 60);
+    if (timeDifferenceInHours >= 24) {
       // Отменить сделку и снизить карму получателя
       await cancelDealAndDecreaseReceiverKarma(deal, io);
     }

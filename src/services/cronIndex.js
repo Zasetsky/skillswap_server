@@ -4,7 +4,7 @@ const checkAndUpdateDeals = require('./dealObserver');
 
 function setupCronJobs(io) {
   // Проверка запросов на отмену каждый час
-  cron.schedule('* * * * *', () => {
+  cron.schedule('0 * * * *', () => {
     console.log('Checking pending cancellation requests');
     checkPendingCancellations(io).catch((error) => {
       console.error('Error while checking pending cancellation requests:', error);
