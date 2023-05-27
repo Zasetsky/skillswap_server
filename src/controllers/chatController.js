@@ -34,9 +34,15 @@ const socketChatController  = (io) => {
             },
           ],
         });
-        console.log(receiverId);
-        io.to(receiverId).emit("newChat", [newChat]);
-        io.to(senderId).emit("newChat", [newChat]);
+    
+        const participants = newChat.participants.map(participant => participant.toString());
+
+        participants.forEach(participant => {
+          if (participant !== socket.userId) {
+            io.to(participant).emit("newChat", newChat);
+          }
+        });
+    
         socket.emit("chat", newChat);
       } catch (error) {
         socket.emit("error", { message: 'Error creating chat', error });
