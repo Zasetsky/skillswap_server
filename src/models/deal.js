@@ -149,44 +149,6 @@ const dealSchema = new mongoose.Schema({
       },
     },
   },
-  reschedule: {
-    form: {
-      skill: {
-        type: String,
-        required: false,
-      },
-      meetingDate: {
-        type: String,
-        required: false,
-      },
-      meetingTime: {
-        type: String,
-        required: false,
-      },
-      meetingDuration: {
-        type: String,
-        required: false,
-      },
-    },
-    form2: {
-      skill: {
-        type: String,
-        required: false,
-      },
-      meetingDate: {
-        type: String,
-        required: false,
-      },
-      meetingTime: {
-        type: String,
-        required: false,
-      },
-      meetingDuration: {
-        type: String,
-        required: false,
-      },
-    },
-  },
   createdAt: {
     type: Date,
   },

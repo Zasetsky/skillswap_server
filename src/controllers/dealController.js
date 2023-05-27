@@ -126,8 +126,8 @@ const DealController = (io) => {
           }
         };
 
-        const rescheduleForm1Matches = deal.reschedule.form && Object.keys(rescheduleFormData1).every(field => rescheduleFormData1[field] === deal.reschedule.form[field]);
-        const rescheduleForm2Matches = deal.reschedule.form2 && Object.keys(rescheduleFormData2).every(field => rescheduleFormData2[field] === deal.reschedule.form2[field]);
+        const rescheduleForm1Matches = deal.form && Object.keys(rescheduleFormData1).every(field => rescheduleFormData1[field] === deal.form[field]);
+        const rescheduleForm2Matches = deal.form2 && Object.keys(rescheduleFormData2).every(field => rescheduleFormData2[field] === deal.form2[field]);
 
         const starterStatuses = ['confirmed', 'half_completed', 'confirmed_reschedule', 'half_completed_confirmed_reschedule'].includes(deal.status);
 
@@ -135,29 +135,13 @@ const DealController = (io) => {
           deal.previousStatus = deal.status;
           deal.status = 'reschedule_offer';
 
-          if (!deal.form.isCompleted) {
-            deal.reschedule.form = rescheduleFormData1;
-          }
-          if (!deal.form2.isCompleted) {
-            deal.reschedule.form2 = rescheduleFormData2;
-          }
+          updateForms();
 
         } else if (deal.status === 'reschedule_offer' || deal.status === 'reschedule_offer_update') {
           deal.status = 'reschedule_offer_update';
 
           if (!rescheduleForm1Matches || !rescheduleForm2Matches) {
-            if (!deal.update.form.meetingDate && !deal.update.form.meetingTime && !deal.update.form.meetingDuration &&
-                !deal.update.form2.meetingDate && !deal.update.form2.meetingTime && !deal.update.form2.meetingDuration) {
-              updateForms();
-            } else {
-              if (!deal.form.isCompleted) {
-                deal.reschedule.form = deal.update.form;
-              }
-              if (!deal.form2.isCompleted) {
-                deal.reschedule.form2 = deal.update.form2;
-              }
-              updateForms();
-            }
+            updateForms();
           } 
         }
 
@@ -196,18 +180,6 @@ const DealController = (io) => {
               'form2.meetingDuration': deal.update.form2.meetingDuration
             },
             $unset: { update: "" }
-          });
-        } else {
-          await Deal.updateOne({ _id: dealId }, { 
-            $set: { 
-              'form.meetingDate': deal.reschedule.form.meetingDate, 
-              'form.meetingTime': deal.reschedule.form.meetingTime, 
-              'form.meetingDuration': deal.reschedule.form.meetingDuration,
-              'form2.meetingDate': deal.reschedule.form2.meetingDate, 
-              'form2.meetingTime': deal.reschedule.form2.meetingTime, 
-              'form2.meetingDuration': deal.reschedule.form2.meetingDuration
-            },
-            $unset: { reschedule: "" }
           });
         }
 
