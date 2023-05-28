@@ -167,7 +167,7 @@ const DealController = (io) => {
           return socket.emit("error", { message: "Deal not found" });
         }
     
-        if (deal.update.form.meetingDate && deal.update.form.meetingTime && deal.update.form.meetingDuration &&
+        if (deal.update.form.meetingDate && deal.update.form.meetingTime && deal.update.form.meetingDuration ||
             deal.update.form2.meetingDate && deal.update.form2.meetingTime && deal.update.form2.meetingDuration) {
     
           await Deal.updateOne({ _id: dealId }, { 
@@ -183,9 +183,11 @@ const DealController = (io) => {
           });
         }
 
+        const half_Completed_Statuses = ['half_completed', 'half_completed_confirmed_reschedule'] 
+
         await Deal.updateOne({ _id: dealId }, {
           $set: {
-            status: deal.previousStatus === 'half_completed' ? 'half_completed_confirmed_reschedule' : 'confirmed_reschedule'
+            status: half_Completed_Statuses.includes(deal.previousStatus)  ? 'half_completed_confirmed_reschedule' : 'confirmed_reschedule'
           }
         });
     
@@ -320,7 +322,7 @@ const DealController = (io) => {
           return socket.emit("error", { message: "Deal not found" });
         }
 
-        deal.sender = socket.userId;
+        deal.cancellation.sender = socket.userId;
         deal.cancellation = { reason, status: "true", timestamp};
 
         await deal.save();

@@ -41,6 +41,10 @@ const dealSchema = new mongoose.Schema({
     default: "not_started",
   },
   cancellation: {
+    sender: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
     reason: {
       type: String,
       required: false,

@@ -1,4 +1,5 @@
 const Chat = require('../models/chat');
+const mongoose = require('mongoose');
 
 getMeetingDetails = (deal) => {
     if (deal.form && deal.form2) {
@@ -35,36 +36,43 @@ getMeetingDetails = (deal) => {
   };
   
 exports.sendMeetingDetails = async (deal, chatId, swapRequest, io) => {
-    try {
-      const meetingDetails = getMeetingDetails(deal);
-  
-      if (meetingDetails) {
-        const newMessage = {
-          chatId: chatId,
-          type: 'meeting_details',
-          content: meetingDetails,
-          sender: meetingDetails === deal.form
+  try {
+    const meetingDetails = getMeetingDetails(deal);
+
+    if (meetingDetails) {
+      const newMessage = {
+        _id: new mongoose.Types.ObjectId(),
+        sender: new mongoose.Types.ObjectId(
+          meetingDetails === deal.form
             ? swapRequest.receiverId
             : swapRequest.senderId
-        };
+        ),
+        type: 'meeting_details',
+        content: meetingDetails,
+        chatId: chatId,
+        createdAt: new Date(),
+      };
 
-        // console.log(newMessage);
-  
-        await Chat.findByIdAndUpdate(
-          chatId,
-          { $push: { messages: newMessage } },
-          { new: true }
-        );
-  
-        for (let participant of deal.participants) {
-          io.to(participant.toString()).emit("message", chatId);
-        }
-  
-      } else {
-        console.warn("No meeting details found");
+      const chat = await Chat.findById(chatId);
+
+      if (!chat) {
+        console.error("Chat not found");
+        return;
       }
-    } catch (error) {
-      console.error("Error sending meeting details:", error);
+
+      chat.messages.push(newMessage);
+
+      await chat.save();
+
+      for (let participant of deal.participants) {
+        io.to(participant.toString()).emit("message", newMessage);
+      }
+
+    } else {
+      console.warn("No meeting details found");
     }
-  };
+  } catch (error) {
+    console.error("Error sending meeting details:", error);
+  }
+};
   

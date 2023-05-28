@@ -63,9 +63,10 @@ const socketChatController  = (io) => {
           _id: new mongoose.Types.ObjectId(),
           sender: new mongoose.Types.ObjectId(socket.userId),
           type: type,
-          content
+          content,
+          chatId,
+          createdAt: new Date(),
         };
-
     
         const chat = await Chat.findById(chatId);
     
@@ -74,11 +75,11 @@ const socketChatController  = (io) => {
         }
     
         chat.messages.push(newMessage);
-
+    
         await chat.save();
     
         for (let participant of chat.participants) {
-          io.to(participant.toString()).emit("message", chatId);
+          io.to(participant.toString()).emit("message", newMessage); // Изменено на newMessage
         }
     
       } catch (error) {
