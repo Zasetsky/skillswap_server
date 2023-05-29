@@ -107,46 +107,54 @@ const DealController = (io) => {
 
     // Предложение переноса Сделки
     socket.on("proposeReschedule", async (data) => {
-      const { dealId, rescheduleFormData1, rescheduleFormData2 } = data;
-
+      const { dealId, formData1, formData2 } = data;
+      console.log(data);
+    
       try {
         const deal = await Deal.findById(dealId);
         if (!deal) {
           return socket.emit("error", { message: "Deal not found" });
         }
-
+    
         deal.sender = socket.userId;
-
+    
         const updateForms = () => {
-          if (!deal.form.isCompleted) {
-            deal.update.form = rescheduleFormData1;
+          // Если обе формы не завершены, то используем данные из formData1 и formData2
+          if (!deal.form.isCompleted && !deal.form2.isCompleted) {
+            deal.update.form = formData1;
+            deal.update.form2 = formData2;
           }
-          if (!deal.form2.isCompleted) {
-            deal.update.form2 = rescheduleFormData2;
+          // Если form завершена, то используем данные из formData1 для form2
+          else if (deal.form.isCompleted && !deal.form2.isCompleted) {
+            deal.update.form2 = formData1;
+          }
+          // Если form2 завершена, то используем данные из formData1 для form
+          else if (!deal.form.isCompleted && deal.form2.isCompleted) {
+            deal.update.form = formData1;
           }
         };
-
-        const rescheduleForm1Matches = deal.form && Object.keys(rescheduleFormData1).every(field => rescheduleFormData1[field] === deal.form[field]);
-        const rescheduleForm2Matches = deal.form2 && Object.keys(rescheduleFormData2).every(field => rescheduleFormData2[field] === deal.form2[field]);
+    
+        const rescheduleForm1Matches = formData1 && Object.keys(formData1).every(field => formData1[field] === deal.form[field]);
+        const rescheduleForm2Matches = formData2 && Object.keys(formData2).every(field => formData2[field] === deal.form2[field]);
 
         const starterStatuses = ['confirmed', 'half_completed', 'confirmed_reschedule', 'half_completed_confirmed_reschedule'].includes(deal.status);
-
+    
         if (starterStatuses) {
           deal.previousStatus = deal.status;
           deal.status = 'reschedule_offer';
-
+    
           updateForms();
-
+    
         } else if (deal.status === 'reschedule_offer' || deal.status === 'reschedule_offer_update') {
           deal.status = 'reschedule_offer_update';
-
+    
           if (!rescheduleForm1Matches || !rescheduleForm2Matches) {
             updateForms();
           } 
         }
-
+    
         await deal.save();
-
+    
         for (let participant of deal.participants) {
           io.to(participant.toString()).emit("deal", deal);
         }
