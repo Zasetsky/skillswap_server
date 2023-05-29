@@ -9,6 +9,14 @@ const swapRequestSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
   },
+  chatId: {
+    type: String,
+    required: false,
+  },
+  dealId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Deal'
+  },
   senderData: {
     avatar: String,
     firstname: String,
@@ -24,10 +32,6 @@ const swapRequestSchema = new mongoose.Schema({
     bio: String,
     skillsToLearn: Array,
     skillsToTeach: Array,
-  },
-  dealId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Deal'
   },
   status: {
     type: String,

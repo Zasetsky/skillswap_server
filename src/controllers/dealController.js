@@ -12,34 +12,32 @@ const DealController = (io) => {
 
 
     // Создание сделки
-    socket.on("createOrGetCurrentDeal", async (data) => {
+    socket.on("createDeal", async (data) => {
       const { participants, chatId, swapRequestId } = data;
     
       try {
-        const existingDeal = await Deal.find({ chatId })
-                                       .sort({ createdAt: -1 })
-                                       .limit(1);
-    
         const swapRequest = await SwapRequest.findById(swapRequestId);
-    
-        if (existingDeal && existingDeal.length > 0) {
-            socket.emit("deal", existingDeal[0]);
-        } else {
-            const newDeal = new Deal({
-                participants,
-                chatId,
-                swapRequestId,
-            });
-    
-            await newDeal.save();
-    
-            swapRequest.dealId = newDeal._id;
-            await swapRequest.save();
-    
-            socket.emit("deal", newDeal);
+        if (!swapRequest) {
+          return socket.emit("error", { message: "SwapRequest not found" });
         }
+    
+        const newDeal = new Deal({
+          participants,
+          chatId,
+          swapRequestId,
+        });
+    
+        await newDeal.save();
+    
+        swapRequest.dealId = newDeal._id;
+        await swapRequest.save();
+
+        for (let participant of participants) {
+          io.to(participant.toString()).emit("swapRequestUpdated", swapRequest);
+        }
+        socket.emit('newDeal', newDeal);
       } catch (error) {
-          socket.emit("error", { message: "Error creating or fetching deal" });
+        socket.emit("error", { message: "Error creating deal" });
       }
     });
       
@@ -444,6 +442,10 @@ const DealController = (io) => {
           return socket.emit("error", { message: "SwapRequest not found" });
         }
 
+        if (oldDeal.status !== "completed" && oldSwapRequest.status !== "completed") {
+          return socket.emit("error", { message: "Deal and SwapRequest must be in 'completed' status to be continued" });
+        }
+
         oldDeal.continuation.status = "continued";
         await oldDeal.save();
     
@@ -508,7 +510,6 @@ const DealController = (io) => {
       }
     });
     
-
 
     // Отклонение продолжения
     socket.on("rejectContinuation", async (data) => {

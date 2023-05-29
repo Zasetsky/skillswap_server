@@ -7,26 +7,20 @@ const socketChatController  = (io) => {
   io.use(socketAuthMiddleware).on("connection", (socket) => {
     console.log("User connected to chat");
 
-    // Создание чата или возврат существующего
-    socket.on("createOrGetCurrentChat", async (data) => {
-      const { receiverId, senderId, swapRequestId } = data;
-    
+    // Создание чата
+    socket.on("createChat", async (data) => {
+      const { receiverId, senderId, requestId } = data;
+
       try {
-        const swapRequest = await SwapRequest.findOne({ _id: swapRequestId });
-    
-        if (swapRequest.status === 'rejected') {
-          return socket.emit('error', { message: 'Swap request is rejected, cannot create or return chat.' });
-        }
-    
-        const existingChat = await Chat.findOne({ swapRequestIds: swapRequestId });
-    
-        if (existingChat) {
-          return socket.emit("chat", existingChat);
+        const swapRequest = await SwapRequest.findOne({ _id: requestId });
+
+        if (!swapRequest || swapRequest.status !== 'accepted') {
+          return socket.emit('error', { message: 'Cannot create chat, swap request not accepted.' });
         }
     
         const newChat = await Chat.create({
           participants: [receiverId, senderId],
-          swapRequestIds: [swapRequestId],
+          swapRequestIds: [requestId],
           messages: [
             {
               sender: senderId,
@@ -34,7 +28,10 @@ const socketChatController  = (io) => {
             },
           ],
         });
-    
+
+        swapRequest.chatId = newChat._id;
+        await swapRequest.save();
+
         const participants = newChat.participants.map(participant => participant.toString());
 
         participants.forEach(participant => {
@@ -42,12 +39,12 @@ const socketChatController  = (io) => {
             io.to(participant).emit("newChat", newChat);
           }
         });
-    
+
         socket.emit("chat", newChat);
       } catch (error) {
         socket.emit("error", { message: 'Error creating chat', error });
       }
-    });
+    });    
 
 
     // Отправка сообщений
