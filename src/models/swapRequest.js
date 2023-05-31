@@ -38,6 +38,10 @@ const swapRequestSchema = new mongoose.Schema({
     enum: ['pending', 'accepted', 'rejected', 'cancelled', 'completed'],
     default: 'pending',
   },
+  version: {
+    type: Number,
+    default: 0,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

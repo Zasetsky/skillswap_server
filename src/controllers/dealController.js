@@ -13,34 +13,58 @@ const DealController = (io) => {
 
     // Создание сделки
     socket.on("createDeal", async (data) => {
-      const { participants, chatId, swapRequestId } = data;
+      const { participants, requestId, chatId } = data;
     
       try {
-        const swapRequest = await SwapRequest.findById(swapRequestId);
-        if (!swapRequest) {
-          return socket.emit("error", { message: "SwapRequest not found" });
+        const swapRequest = await SwapRequest.findById(requestId);
+    
+        if (!swapRequest || swapRequest.status !== 'accepted') {
+          throw new Error("SwapRequest not found or not in active state.");
+        }
+
+        if (swapRequest.dealId) {
+          throw new Error("Cannot create deal, deal already exists for this swap request.");
+        }
+    
+        const updateResult = await SwapRequest.findOneAndUpdate(
+          { _id: requestId, version: swapRequest.version },
+          { $inc: { version: 1 } },
+          { new: true }
+        );
+    
+        if (!updateResult) {
+          throw new Error('Another deal is being created.');
         }
     
         const newDeal = new Deal({
           participants,
           chatId,
-          swapRequestId,
+          swapRequestId: requestId,
         });
     
         await newDeal.save();
     
-        swapRequest.dealId = newDeal._id;
-        await swapRequest.save();
-
-        for (let participant of participants) {
-          io.to(participant.toString()).emit("swapRequestUpdated", swapRequest);
+        const updateDealIdResult = await SwapRequest.findOneAndUpdate(
+          { _id: requestId, version: updateResult.version },
+          { $set: { dealId: newDeal._id }, $inc: { version: 1 } },
+          { new: true }
+        );
+    
+        if (!updateDealIdResult) {
+          throw new Error('Failed to update deal ID.');
         }
+    
+        for (let participant of participants) {
+          io.to(participant.toString()).emit("swapRequestUpdated", updateDealIdResult);
+        }
+    
         socket.emit('newDeal', newDeal);
       } catch (error) {
-        socket.emit("error", { message: "Error creating deal" });
+        console.log(error);
+        socket.emit("error", { message: "Error creating deal on server" });
       }
     });
-      
+
 
     // Обновление Сделки
     socket.on("updateDeal", async (data) => {

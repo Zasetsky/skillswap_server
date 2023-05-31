@@ -7,6 +7,7 @@ const socketChatController  = (io) => {
   io.use(socketAuthMiddleware).on("connection", (socket) => {
     console.log("User connected to chat");
 
+
     // Создание чата
     socket.on("createChat", async (data) => {
       const { receiverId, senderId, requestId } = data;
@@ -15,22 +16,41 @@ const socketChatController  = (io) => {
         const swapRequest = await SwapRequest.findOne({ _id: requestId });
 
         if (!swapRequest || swapRequest.status !== 'accepted') {
-          return socket.emit('error', { message: 'Cannot create chat, swap request not accepted.' });
+          throw new Error('Cannot create chat, swap request not found or not accepted.');
         }
-    
+
+        if (swapRequest.chatId) {
+          throw new Error('Chat is already being created.');
+        }
+
+        const updateResult = await SwapRequest.findOneAndUpdate(
+          { _id: requestId, version: swapRequest.version },
+          { $inc: { version: 1 } },
+          { new: true }
+        );
+
+        if (!updateResult) {
+          throw new Error('Chat or deal is already being created.');
+        }
+
         const newChat = await Chat.create({
           participants: [receiverId, senderId],
           swapRequestIds: [requestId],
-          messages: [
-            {
-              sender: senderId,
-              content: `Привет, я хочу обменяться с тобой навыками!`,
-            },
-          ],
+          messages: [{
+            sender: senderId,
+            content: `Привет, я хочу обменяться с тобой навыками!`,
+          }],
         });
 
-        swapRequest.chatId = newChat._id;
-        await swapRequest.save();
+        const updateChatIdResult = await SwapRequest.findOneAndUpdate(
+          { _id: requestId, version: updateResult.version },
+          { $set: { chatId: newChat._id }, $inc: { version: 1 } },
+          { new: true }
+        );
+
+        if (!updateChatIdResult) {
+          throw new Error('Failed to update chat ID.');
+        }
 
         const participants = newChat.participants.map(participant => participant.toString());
 
@@ -44,7 +64,7 @@ const socketChatController  = (io) => {
       } catch (error) {
         socket.emit("error", { message: 'Error creating chat', error });
       }
-    });    
+    });
 
 
     // Отправка сообщений
@@ -76,7 +96,7 @@ const socketChatController  = (io) => {
         await chat.save();
     
         for (let participant of chat.participants) {
-          io.to(participant.toString()).emit("message", newMessage); // Изменено на newMessage
+          io.to(participant.toString()).emit("message", newMessage);
         }
     
       } catch (error) {
