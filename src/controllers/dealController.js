@@ -21,19 +21,9 @@ const DealController = (io) => {
         if (!swapRequest || swapRequest.status !== 'accepted') {
           throw new Error("SwapRequest not found or not in active state.");
         }
-
+    
         if (swapRequest.dealId) {
           throw new Error("Cannot create deal, deal already exists for this swap request.");
-        }
-    
-        const updateResult = await SwapRequest.findOneAndUpdate(
-          { _id: requestId, version: swapRequest.version },
-          { $inc: { version: 1 } },
-          { new: true }
-        );
-    
-        if (!updateResult) {
-          throw new Error('Another deal is being created.');
         }
     
         const newDeal = new Deal({
@@ -44,18 +34,18 @@ const DealController = (io) => {
     
         await newDeal.save();
     
-        const updateDealIdResult = await SwapRequest.findOneAndUpdate(
-          { _id: requestId, version: updateResult.version },
+        const updateResult = await SwapRequest.findOneAndUpdate(
+          { _id: requestId, version: swapRequest.version },
           { $set: { dealId: newDeal._id }, $inc: { version: 1 } },
           { new: true }
         );
     
-        if (!updateDealIdResult) {
+        if (!updateResult) {
           throw new Error('Failed to update deal ID.');
         }
     
         for (let participant of participants) {
-          io.to(participant.toString()).emit("swapRequestUpdated", updateDealIdResult);
+          io.to(participant.toString()).emit("swapRequestUpdated", updateResult);
         }
     
         socket.emit('newDeal', newDeal);

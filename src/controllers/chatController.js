@@ -11,28 +11,18 @@ const socketChatController  = (io) => {
     // Создание чата
     socket.on("createChat", async (data) => {
       const { receiverId, senderId, requestId } = data;
-
+    
       try {
         const swapRequest = await SwapRequest.findOne({ _id: requestId });
-
+    
         if (!swapRequest || swapRequest.status !== 'accepted') {
           throw new Error('Cannot create chat, swap request not found or not accepted.');
         }
-
+    
         if (swapRequest.chatId) {
           throw new Error('Chat is already being created.');
         }
-
-        const updateResult = await SwapRequest.findOneAndUpdate(
-          { _id: requestId, version: swapRequest.version },
-          { $inc: { version: 1 } },
-          { new: true }
-        );
-
-        if (!updateResult) {
-          throw new Error('Chat or deal is already being created.');
-        }
-
+    
         const newChat = await Chat.create({
           participants: [receiverId, senderId],
           swapRequestIds: [requestId],
@@ -41,25 +31,25 @@ const socketChatController  = (io) => {
             content: `Привет, я хочу обменяться с тобой навыками!`,
           }],
         });
-
-        const updateChatIdResult = await SwapRequest.findOneAndUpdate(
-          { _id: requestId, version: updateResult.version },
+    
+        const updateResult = await SwapRequest.findOneAndUpdate(
+          { _id: requestId, version: swapRequest.version },
           { $set: { chatId: newChat._id }, $inc: { version: 1 } },
           { new: true }
         );
-
-        if (!updateChatIdResult) {
+    
+        if (!updateResult) {
           throw new Error('Failed to update chat ID.');
         }
-
+    
         const participants = newChat.participants.map(participant => participant.toString());
-
+    
         participants.forEach(participant => {
           if (participant !== socket.userId) {
             io.to(participant).emit("newChat", newChat);
           }
         });
-
+    
         socket.emit("chat", newChat);
       } catch (error) {
         socket.emit("error", { message: 'Error creating chat', error });
