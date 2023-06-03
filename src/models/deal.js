@@ -72,6 +72,10 @@ const dealSchema = new mongoose.Schema({
     enum: ["confirmed", "half_completed", "confirmed_reschedule", "half_completed_confirmed_reschedule"]
   },
   form: {
+    skillId: {
+      type: String,
+      required: false,
+    },
     skill: {
       type: String,
       required: false,
@@ -94,6 +98,10 @@ const dealSchema = new mongoose.Schema({
     },
   },
   form2: {
+    skillId: {
+      type: String,
+      required: false,
+    },
     skill: {
       type: String,
       required: false,
@@ -111,12 +119,16 @@ const dealSchema = new mongoose.Schema({
       required: false,
     },
     isCompleted: {
-        type: Boolean,
-        default: false,
+      type: Boolean,
+      default: false,
     },
   },
   update: {
     form: {
+      skillId: {
+        type: String,
+        required: false,
+      },
       skill: {
         type: String,
         required: false,
@@ -135,6 +147,10 @@ const dealSchema = new mongoose.Schema({
       },
     },
     form2: {
+      skillId: {
+        type: String,
+        required: false,
+      },
       skill: {
         type: String,
         required: false,
