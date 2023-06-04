@@ -11,6 +11,28 @@ const DealController = (io) => {
     console.log("User connected to deal");
 
 
+    socket.on("toggleIsSending", async (data) => {
+      try {
+        const dealId = data.dealId;
+
+        const deal = await Deal.findById(dealId);
+
+        if (!deal) {
+          console.log(`No swapRequest found for id: ${dealId}`);
+          return;
+        }
+
+        for(let participant of deal.participants) {
+          if (participant !== socket.userId) {
+            io.to(participant.toString()).emit("isSending");
+          }
+        }
+      } catch (error) {
+          console.log(error);
+      }
+    });
+
+
     // Создание сделки
     socket.on("createDeal", async (data) => {
       const { participants, requestId, chatId } = data;
@@ -186,22 +208,30 @@ const DealController = (io) => {
         if (!deal) {
           return socket.emit("error", { message: "Deal not found" });
         }
-    
-        if (deal.update.form.meetingDate && deal.update.form.meetingTime && deal.update.form.meetingDuration ||
-            deal.update.form2.meetingDate && deal.update.form2.meetingTime && deal.update.form2.meetingDuration) {
-    
+
+        if (!deal.form.isCompleted && deal.update.form.meetingDate && deal.update.form.meetingTime && deal.update.form.meetingDuration) {
           await Deal.updateOne({ _id: dealId }, { 
             $set: { 
               'form.meetingDate': deal.update.form.meetingDate, 
               'form.meetingTime': deal.update.form.meetingTime, 
               'form.meetingDuration': deal.update.form.meetingDuration,
+            }
+          });
+        }
+
+        if (!deal.form2.isCompleted && deal.update.form2.meetingDate && deal.update.form2.meetingTime && deal.update.form2.meetingDuration) {
+          await Deal.updateOne({ _id: dealId }, { 
+            $set: { 
               'form2.meetingDate': deal.update.form2.meetingDate, 
               'form2.meetingTime': deal.update.form2.meetingTime, 
               'form2.meetingDuration': deal.update.form2.meetingDuration
-            },
-            $unset: { update: "" }
+            }
           });
         }
+
+        await Deal.updateOne({ _id: dealId }, {
+          $unset: { update: "" }
+        });
 
         const half_Completed_Statuses = ['half_completed', 'half_completed_confirmed_reschedule'] 
 
@@ -210,7 +240,7 @@ const DealController = (io) => {
             status: half_Completed_Statuses.includes(deal.previousStatus)  ? 'half_completed_confirmed_reschedule' : 'confirmed_reschedule'
           }
         });
-    
+        
         const updatedDeal = await Deal.findById(dealId);
         const swapRequest = await SwapRequest.findById(updatedDeal.swapRequestId);
 
@@ -294,7 +324,6 @@ const DealController = (io) => {
     });
 
 
-
     // Подтверждение сделки
     socket.on("confirmDeal", async (data) => {
       const { dealId } = data;
@@ -304,6 +333,10 @@ const DealController = (io) => {
 
         if (!deal) {
           return socket.emit("error", { message: "Deal not found" });
+        }
+
+        if (deal.status === "confirmed") {
+          return socket.emit("error", { message: "Deal already confirmed" });
         }
         
         if (deal.update.form.meetingDate && deal.update.form.meetingTime && deal.update.form.meetingDuration &&
@@ -338,8 +371,13 @@ const DealController = (io) => {
 
       try {
         const deal = await Deal.findById(dealId);
+
         if (!deal) {
           return socket.emit("error", { message: "Deal not found" });
+        }
+
+        if (deal.cancellation.status === "true") {
+          return socket.emit("error", { message: "Request already sent" });
         }
 
         deal.cancellation.sender = socket.userId;
@@ -422,10 +460,31 @@ const DealController = (io) => {
     
       try {
         const deal = await Deal.findById(dealId);
+
         if (!deal) {
           return socket.emit("error", { message: "Deal not found" });
         }
-    
+
+        if (deal.continuation.status === "true") {
+          return socket.emit("error", { message: "Request already sent" });
+        }
+
+        const user = await User.findById(socket.userId);
+
+        if (!user) {
+          return socket.emit("error", { message: "User not found" });
+        }
+
+        // Проверяем активность навыков в 'skillsToLearn'
+        const skillToLearn = user.skillsToLearn.find(skill => skill._id.toString() === deal.form.skillId);
+        const skillToLearn2 = user.skillsToLearn.find(skill => skill._id.toString() === deal.form2.skillId);
+
+        if ((skillToLearn && skillToLearn.isActive) || (skillToLearn2 && skillToLearn2.isActive)) {
+          return socket.emit("error", { message: "One or both skills are already active" });
+        }
+        
+        socket.emit("notActiveSkills");
+
         deal.sender = socket.userId;
         deal.continuation.status = "true";
     
@@ -459,6 +518,20 @@ const DealController = (io) => {
         if (oldDeal.status !== "completed" && oldSwapRequest.status !== "completed") {
           return socket.emit("error", { message: "Deal and SwapRequest must be in 'completed' status to be continued" });
         }
+
+        for (let participant of oldDeal.participants) {
+          const user = await User.findById(participant);
+    
+          // Проверяем активность навыков в 'skillsToLearn'
+          const skillToLearn = user.skillsToLearn.find(skill => skill._id.toString() === oldDeal.form.skillId);
+        const skillToLearn2 = user.skillsToLearn.find(skill => skill._id.toString() === oldDeal.form2.skillId);
+    
+          if ((skillToLearn && skillToLearn.isActive) || (skillToLearn2 && skillToLearn2.isActive)) {
+            return socket.emit("error", { message: "One or both skills are already active" });
+          }
+        }
+
+        socket.emit("notActiveSkills");
 
         oldDeal.continuation.status = "continued";
         await oldDeal.save();

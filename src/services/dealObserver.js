@@ -55,6 +55,8 @@ async function checkAndUpdateDeals(io) {
       if (completedForms.includes(formPath1) && completedForms.includes(formPath2) && newStatus === 'completed') {
         try {
           await SwapRequest.findByIdAndUpdate(deal.swapRequestId, { status: 'completed' });
+
+          await Deal.findByIdAndUpdate(deal._id, { completedAt: new Date() });
       
           const updatedSwapRequest = await SwapRequest.findById(deal.swapRequestId);
       
@@ -90,11 +92,9 @@ async function checkAndUpdateDeals(io) {
     }
 
     for (const deal of deals) {
-      const newStatus = ['confirmed', 'confirmed_reschedule', 'reschedule_offer', 'reschedule_offer_update'].some(
-        (status) => status === deal.status
-      )
-        ? 'half_completed'
-        : 'completed';
+      const newStatus = deal.form.isCompleted || deal.form2.isCompleted
+        ? 'completed'
+        : 'half_completed';
 
       await updateDealStatus(deal, 'form', 'form2', newStatus, io);
     }

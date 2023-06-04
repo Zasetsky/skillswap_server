@@ -172,6 +172,9 @@ const dealSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
   },
+  completedAt: {
+    type: Date,
+  },
 });
 
 module.exports = mongoose.model('Deal', dealSchema);

@@ -8,6 +8,29 @@ const socketChatController  = (io) => {
     console.log("User connected to chat");
 
 
+    socket.on("toggleIsBusy", async (requestId) => {
+      try {
+        const swapRequest = await SwapRequest.findById(requestId);
+
+        if (!swapRequest) {
+          console.log(`No swapRequest found for id: ${requestId}`);
+          return;
+        }
+
+        const { senderId, receiverId } = swapRequest;
+    
+        if (String(senderId) !== String(socket.userId)) {
+          io.to(String(senderId)).emit("isBusy");
+        } 
+        if (String(receiverId) !== String(socket.userId)) {
+          io.to(String(receiverId)).emit("isBusy");
+        }
+      } catch (error) {
+          console.log(error);
+      }
+    });
+
+
     // Создание чата
     socket.on("createChat", async (data) => {
       const { receiverId, senderId, requestId } = data;
@@ -41,6 +64,8 @@ const socketChatController  = (io) => {
         if (!updateResult) {
           throw new Error('Failed to update chat ID.');
         }
+
+        socket.emit("notCreatingChat");
     
         const participants = newChat.participants.map(participant => participant.toString());
     
