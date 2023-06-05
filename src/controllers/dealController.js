@@ -410,8 +410,27 @@ const DealController = (io) => {
           return socket.emit("error", { message: "SwapRequest not found" });
         }
     
-        if (deal.status === 'cancelled' || swapRequest.status === 'cancelled') {
+        if ((deal.status === 'cancelled' || deal.status === 'completed') ||
+            (swapRequest.status === 'cancelled' || swapRequest.status === 'completed')) {
           return socket.emit("error", { message: "Deal or SwapRequest is already cancelled" });
+        }
+    
+        // Ищем активные навыки
+        const skillsToTeachId = swapRequest.senderData.skillsToTeach[0]._id;
+        const skillsToLearnId = swapRequest.senderData.skillsToLearn[0]._id;
+    
+        // Обновляем активные навыки для каждого участника
+        for (let participant of deal.participants) {
+          await User.updateMany(
+            { 
+              _id: participant, 
+              'skillsToLearn._id': { $in: [skillsToTeachId, skillsToLearnId] } 
+            },
+            { 'skillsToLearn.$.isActive': false }
+          );
+    
+          const updatedUser = await User.findById(participant);
+          io.to(participant.toString()).emit('userUpdated', updatedUser);
         }
     
         deal.status = "cancelled";
@@ -420,16 +439,18 @@ const DealController = (io) => {
         await swapRequest.save();
         await deal.save();
     
+        const updatedSwapRequest = await SwapRequest.findById(deal.swapRequestId);
+    
         for (let participant of deal.participants) {
           io.to(participant.toString()).emit("cancellationApproved", deal);
-          io.to(participant.toString()).emit('swapRequestUpdated', swapRequest);
+          io.to(participant.toString()).emit('swapRequestUpdated', updatedSwapRequest);
         }
-    
+        
       } catch (error) {
         console.error(error);
         socket.emit("error", { message: "Error approveCancellation deal" });
       }
-    });    
+    });
 
 
     // Отклонение отмены
