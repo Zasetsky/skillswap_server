@@ -41,7 +41,7 @@ const swapRequestController = (io) => {
     // Принять запрос на обмен
     socket.on("acceptSwapRequest", async (data) => {
       try {
-        const { swapRequestId, chosenSkillToSwap } = data;
+        const { swapRequestId, chosenSkill } = data;
 
         // Найти запрос на обмен с заданным swapRequestId и обновить статус на "accepted"
         const swapRequest = await SwapRequest.findById(swapRequestId);
@@ -51,15 +51,15 @@ const swapRequestController = (io) => {
         swapRequest.status = 'accepted';
 
         // Обновить skillsToTeach у получателя
-        swapRequest.receiverData.skillsToTeach = [chosenSkillToSwap];
+        swapRequest.receiverData.skillsToTeach = [chosenSkill];
 
-        // Обновить skillsToTeach у отправителя, оставив только chosenSkillToSwap
+        // Обновить skillsToTeach у отправителя, оставив только chosenSkill
         swapRequest.senderData.skillsToTeach = swapRequest.senderData.skillsToTeach.filter(skill => {
-          return skill._id.toString() === chosenSkillToSwap._id.toString();
+          return skill._id.toString() === chosenSkill._id.toString();
         });
 
         // Найти пользователя и обновить isActive для соответствующего навыка
-        await User.updateOne({ _id: swapRequest.receiverId, "skillsToLearn._id": chosenSkillToSwap._id }, { $set: { "skillsToLearn.$.isActive": true } });
+        await User.updateOne({ _id: swapRequest.receiverId, "skillsToLearn._id": chosenSkill._id }, { $set: { "skillsToLearn.$.isActive": true } });
 
         await swapRequest.save();
 
