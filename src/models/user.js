@@ -6,6 +6,10 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 100,
   },
+  vip: {
+    type: Boolean,
+    default: false
+  },
   firstname: {
     type: String,
     default: '',

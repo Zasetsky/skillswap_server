@@ -27,7 +27,7 @@ exports.addSkillsToLearn = async (req, res) => {
           _id: availableSkill._id,
           theme: availableSkill.theme,
           category: availableSkill.category,
-          subCategory: availableSkill.subCategory,
+          subcategory: availableSkill.subcategory,
           skill: availableSkill.skill,
         });
       }
@@ -66,7 +66,7 @@ exports.addSkillsToTeach = async (req, res) => {
           _id: availableSkill._id,
           theme: availableSkill.theme,
           category: availableSkill.category,
-          subCategory: availableSkill.subCategory,
+          subcategory: availableSkill.subcategory,
           skill: availableSkill.skill,
         });
       }
