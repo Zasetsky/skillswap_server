@@ -6,11 +6,17 @@ const path = require('path');
 
 exports.updateProfile = async (req, res) => {
   try {
-    const { firstname, lastname, bio } = req.body;
+    let { firstname, lastname, age, gender, bio } = req.body;
     const userId = req.userId;
+
+    console.log(gender);
+
+    firstname = capitalizeFirstLetter(firstname);
+    lastname = capitalizeFirstLetter(lastname);
+
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { firstname, lastname, bio },
+      { firstname, lastname, age, gender, bio },
       { new: true, omitUndefined: true }
     ).select('-password');
 
@@ -24,6 +30,10 @@ exports.updateProfile = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+function capitalizeFirstLetter(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+}
 
 // Запрос профиля
 

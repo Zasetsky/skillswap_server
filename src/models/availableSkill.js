@@ -9,7 +9,7 @@ const availableSkillSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    subCategory: {
+    subcategory: {
         type: String,
         required: true
     },

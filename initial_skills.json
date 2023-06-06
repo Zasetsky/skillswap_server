@@ -4,9 +4,9 @@
             "categories": [
                 {
                     "category": "Разработка",
-                    "subCategories": [
+                    "subcategories": [
                         {
-                            "subCategory": "Frontend",
+                            "subcategory": "Frontend",
                             "skills": [
                                 "JavaScript",
                                 "HTML/CSS",
@@ -21,7 +21,7 @@
                             ]
                         },
                         {
-                            "subCategory": "Backend",
+                            "subcategory": "Backend",
                             "skills": [
                                 "Node.js",
                                 "Python",
@@ -36,7 +36,7 @@
                             ]
                         },
                         {
-                            "subCategory": "Мобильная разработка",
+                            "subcategory": "Мобильная разработка",
                             "skills": [
                                 "Swift",
                                 "Objective-C",
@@ -51,7 +51,7 @@
                             ]
                         },
                         {
-                            "subCategory": "Базы данных",
+                            "subcategory": "Базы данных",
                             "skills": [
                                 "MySQL",
                                 "PostgreSQL",
@@ -66,7 +66,7 @@
                             ]
                         },
                         {
-                            "subCategory": "Тестирование",
+                            "subcategory": "Тестирование",
                             "skills": [
                                 "JUnit",
                                 "TestNG",
@@ -81,7 +81,7 @@
                             ]
                         },
                         {
-                            "subCategory": "DevOps",
+                            "subcategory": "DevOps",
                             "skills": [
                                 "Docker",
                                 "Kubernetes",
@@ -99,9 +99,9 @@
                 },
                 {
                     "category": "Тестирование ПО",
-                    "subCategories": [
+                    "subcategories": [
                         {
-                            "subCategory": "Функциональное тестирование",
+                            "subcategory": "Функциональное тестирование",
                             "skills": [
                                 "Тест-кейсы",
                                 "Тест-план",
@@ -116,7 +116,7 @@
                             ]
                         },
                         {
-                            "subCategory": "Нагрузочное тестирование",
+                            "subcategory": "Нагрузочное тестирование",
                             "skills": [
                                 "JMeter",
                                 "LoadRunner",
@@ -131,7 +131,7 @@
                             ]
                         },
                         {
-                            "subCategory": "Безопасность",
+                            "subcategory": "Безопасность",
                             "skills": [
                                 "Тестирование на проникновение",
                                 "Сканирование уязвимостей",
@@ -147,7 +147,7 @@
                             ]
                         },
                         {
-                            "subCategory": "Автоматизация тестирования",
+                            "subcategory": "Автоматизация тестирования",
                             "skills": [
                                 "Selenium",
                                 "Appium",
@@ -165,9 +165,9 @@
                 },
                 {
                     "category": "Бизнес-аналитика",
-                    "subCategories": [
+                    "subcategories": [
                         {
-                            "subCategory": "Системный анализ",
+                            "subcategory": "Системный анализ",
                             "skills": [
                                 "Требования",
                                 "UML",
@@ -182,7 +182,7 @@
                             ]
                         },
                         {
-                            "subCategory": "Проектное управление",
+                            "subcategory": "Проектное управление",
                             "skills": [
                                 "Scrum",
                                 "Kanban",
@@ -197,7 +197,7 @@
                             ]
                         },
                         {
-                            "subCategory": "Управление продуктом",
+                            "subcategory": "Управление продуктом",
                             "skills": [
                                 "Roadmap",
                                 "Пользовательские истории",
@@ -220,9 +220,9 @@
             "categories": [
                 {
                     "category": "Графический дизайн",
-                    "subCategories": [
+                    "subcategories": [
                         {
-                            "subCategory": "Веб-дизайн",
+                            "subcategory": "Веб-дизайн",
                             "skills": [
                                 "Adobe Photoshop",
                                 "Adobe Illustrator",
@@ -237,7 +237,7 @@
                             ]
                         },
                         {
-                        "subCategory": "UI/UX",
+                        "subcategory": "UI/UX",
                         "skills": [
                         "Интерфейсы",
                         "Пользовательский опыт",
@@ -252,7 +252,7 @@
                         ]
                         },
                         {
-                        "subCategory": "Анимация",
+                        "subcategory": "Анимация",
                         "skills": [
                         "Adobe After Effects",
                         "Adobe Animate",
@@ -267,7 +267,7 @@
                         ]
                         },
                         {
-                        "subCategory": "3D-моделирование",
+                        "subcategory": "3D-моделирование",
                         "skills": [
                         "Blender",
                         "ZBrush",
@@ -285,9 +285,9 @@
                 },
                 {
                     "category": "Типографика",
-                    "subCategories": [
+                    "subcategories": [
                     {
-                    "subCategory": "Шрифты",
+                    "subcategory": "Шрифты",
                     "skills": [
                     "Выбор шрифтов",
                     "Комбинирование шрифтов",
@@ -302,7 +302,7 @@
                     ]
                     },
                     {
-                    "subCategory": "Цветовая теория",
+                    "subcategory": "Цветовая теория",
                     "skills": [
                     "Цветовой круг",
                     "Цветовые схемы",
@@ -325,9 +325,9 @@
         "categories": [
         {
         "category": "Региональная кухня",
-        "subCategories": [
+        "subcategories": [
         {
-        "subCategory": "Японская кухня",
+        "subcategory": "Японская кухня",
         "skills": [
         "Суши",
         "Сашими",
@@ -342,7 +342,7 @@
         ]
         },
         {
-        "subCategory": "Итальянская кухня",
+        "subcategory": "Итальянская кухня",
         "skills": [
         "Паста",
         "Пицца",
@@ -357,7 +357,7 @@
         ]
         },
         {
-        "subCategory": "Французская кухня",
+        "subcategory": "Французская кухня",
         "skills": [
             "Багет",
             "Круассан",
@@ -372,7 +372,7 @@
             ]
             },
             {
-            "subCategory": "Китайская кухня",
+            "subcategory": "Китайская кухня",
             "skills": [
             "Пекинская утка",
             "Дим сум",
@@ -387,7 +387,7 @@
             ]
             },
             {
-            "subCategory": "Индийская кухня",
+            "subcategory": "Индийская кухня",
             "skills": [
             "Карри",
             "Масала",
@@ -405,9 +405,9 @@
             },
             {
             "category": "Техники приготовления",
-            "subCategories": [
+            "subcategories": [
             {
-            "subCategory": "Жарка",
+            "subcategory": "Жарка",
             "skills": [
             "Скорость приготовления",
             "Температура",
@@ -422,7 +422,7 @@
             ]
             },
             {
-            "subCategory": "Тушение",
+            "subcategory": "Тушение",
             "skills": [
             "Подготовка продуктов",
             "Выбор посуды",
@@ -437,7 +437,7 @@
             ]
             },
             {
-            "subCategory": "Пароварка",
+            "subcategory": "Пароварка",
             "skills": [
             "Выбор оборудования",
             "Подготовка продуктов",
@@ -452,7 +452,7 @@
             ]
             },
             {
-            "subCategory": "Запекание",
+            "subcategory": "Запекание",
             "skills": [
             "Подготовка продуктов",
             "Выбор посуды",
@@ -467,7 +467,7 @@
             ]
             },
             {
-            "subCategory": "Гриль",
+            "subcategory": "Гриль",
             "skills": [
             "Выбор оборудования",
             "Подготовка продуктов",
@@ -490,9 +490,9 @@
             "categories": [
             {
             "category": "Английский язык",
-            "subCategories": [
+            "subcategories": [
             {
-            "subCategory": "Грамматика",
+            "subcategory": "Грамматика",
             "skills": [
             "Времена",
             "Модальные глаголы",
@@ -507,7 +507,7 @@
             ]
             },
             {
-            "subCategory": "Лексика",
+            "subcategory": "Лексика",
             "skills": [
             "Словосочетания",
             "Фразовые глаголы",
@@ -522,7 +522,7 @@
             ]
             },
             {
-            "subCategory": "Практика",
+            "subcategory": "Практика",
             "skills": [
             "Разговорный клуб",
             "Письменная практика",
@@ -540,9 +540,9 @@
             },
             {
             "category": "Испанский язык",
-            "subCategories": [
+            "subcategories": [
             {
-            "subCategory": "Грамматика",
+            "subcategory": "Грамматика",
             "skills": [
             "Времена",
             "Модальные глаголы",
@@ -557,7 +557,7 @@
             ]
             },
             {
-            "subCategory": "Лексика",
+            "subcategory": "Лексика",
             "skills": [
             "Словосочетания",
             "Фразовые глаголы",
@@ -572,7 +572,7 @@
             ]
             },
             {
-            "subCategory": "Практика",
+            "subcategory": "Практика",
             "skills": [
             "Разговорный клуб",
             "Письменная практика",
@@ -590,9 +590,9 @@
             },
             {
             "category": "Немецкий язык",
-            "subCategories": [
+            "subcategories": [
             {
-            "subCategory": "Грамматика",
+            "subcategory": "Грамматика",
             "skills": [
             "Времена",
             "Модальные глаголы",
@@ -607,7 +607,7 @@
             ]
             },
             {
-            "subCategory": "Лексика",
+            "subcategory": "Лексика",
             "skills": [
             "Словосочетания",
             "Фразовые глаголы",
@@ -622,7 +622,7 @@
             ]
             },
             {
-            "subCategory": "Практика",
+            "subcategory": "Практика",
             "skills": [
             "Разговорный клуб",
             "Письменная практика",
@@ -640,9 +640,9 @@
             },
             {
             "category": "Французский язык",
-            "subCategories": [
+            "subcategories": [
             {
-            "subCategory": "Грамматика",
+            "subcategory": "Грамматика",
             "skills": [
                 "Времена",
                 "Модальные глаголы",
@@ -657,7 +657,7 @@
             ]
                 },
                 {
-                "subCategory": "Лексика",
+                "subcategory": "Лексика",
                 "skills": [
                 "Словосочетания",
                 "Фразовые глаголы",
@@ -672,7 +672,7 @@
                 ]
                 },
                 {
-                "subCategory": "Практика",
+                "subcategory": "Практика",
                 "skills": [
                 "Разговорный клуб",
                 "Письменная практика",
@@ -690,9 +690,9 @@
                 },
                 {
                 "category": "Итальянский язык",
-                "subCategories": [
+                "subcategories": [
                 {
-                "subCategory": "Грамматика",
+                "subcategory": "Грамматика",
                 "skills": [
                 "Времена",
                 "Модальные глаголы",
@@ -707,7 +707,7 @@
                 ]
                 },
                 {
-                "subCategory": "Лексика",
+                "subcategory": "Лексика",
                 "skills": [
                 "Словосочетания",
                 "Фразовые глаголы",
@@ -722,7 +722,7 @@
                 ]
                 },
                 {
-                "subCategory": "Практика",
+                "subcategory": "Практика",
                 "skills": [
                     "Разговорный клуб",
                     "Письменная практика",

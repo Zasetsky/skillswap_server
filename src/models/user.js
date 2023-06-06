@@ -14,6 +14,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  gender: {
+    type: String,
+    enum: ['male', 'other', 'female']
+  },
   age: {
     type: Number,
   },
@@ -39,7 +43,7 @@ const userSchema = new mongoose.Schema({
     {
       theme: String,
       category: String,
-      subCategory: String,
+      subcategory: String,
       skill: String,
       isActive: Boolean,
       level: {
@@ -52,7 +56,7 @@ const userSchema = new mongoose.Schema({
     {
       theme: String,
       category: String,
-      subCategory: String,
+      subcategory: String,
       skill: String,
       level: {
         type: String,

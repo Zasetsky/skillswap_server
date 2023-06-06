@@ -24,14 +24,14 @@ const seedAvailableSkills = async () => {
             for (const category of theme.categories) {
                 const categoryName = category.category;
 
-                for (const subCategory of category.subCategories) {
-                    const subCategoryName = subCategory.subCategory;
+                for (const subcategory of category.subcategories) {
+                    const subcategoryName = subcategory.subcategory;
 
-                    for (const skill of subCategory.skills) {
+                    for (const skill of subcategory.skills) {
                         const availableSkill = new AvailableSkill({
                             theme: themeName,
                             category: categoryName,
-                            subCategory: subCategoryName,
+                            subcategory: subcategoryName,
                             skill: skill
                         });
                         await availableSkill.save();
