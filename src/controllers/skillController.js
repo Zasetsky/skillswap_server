@@ -93,7 +93,7 @@ exports.addSkillsToTeach = async (req, res) => {
       );
 
       if (skillInTeachList || skillInLearnList) {
-        return res.status(400).json({ message: 'This skill is already in the list of skills to teach' });
+        return res.status(400).json({ message: 'This skill is already in the list of skills' });
       } else {
         user.skillsToTeach.push({
           _id: availableSkill._id,

@@ -58,14 +58,13 @@ exports.findMatchingUsers = async (req, res) => {
   try {
     const skillId = req.body.skillId;
     const currentUserId = req.userId;
-    console.log(skillId);
 
     if (!mongoose.Types.ObjectId.isValid(skillId)) {
       return res.status(400).json({ message: 'Invalid skill ID' });
     }
 
     // Получить текущего пользователя и его skillsToTeach
-    const currentUser = await User.findById(currentUserId).select('skillsToTeach');
+    const currentUser = await User.findById(currentUserId);
     const currentUserSkillsToTeachIds = currentUser.skillsToTeach.map(skill => skill._id.toString());
     const currentUserSkillLevel = currentUser.skillsToLearn.find(skill => skill._id.toString() === skillId).level;
 
@@ -92,7 +91,7 @@ exports.findMatchingUsers = async (req, res) => {
 
     res.status(200).json({ matchingUsers: sortedUsers });
   } catch (error) {
-    console.error('Error in findMatchingUsers:', error);
+    console.log(error);
     res.status(500).json({ message: 'Server error', error });
   }
 };

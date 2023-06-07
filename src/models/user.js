@@ -49,7 +49,10 @@ const userSchema = new mongoose.Schema({
       category: String,
       subcategory: String,
       skill: String,
-      isActive: Boolean,
+      isActive: {
+        type: Boolean,
+        default: false
+      },
       level: {
         type: String,
         enum: ["beginner", "intermediate", "advanced"]
