@@ -1,6 +1,8 @@
 const User = require('../models/user');
 const AvailableSkill = require('../models/availableSkill');
 
+const MAX_SKILLS_VIP = 9;
+const MAX_SKILLS_NON_VIP = 3;
 
 // Добавление скиллов
 
@@ -9,9 +11,6 @@ exports.addSkillsToLearn = async (req, res) => {
     const user = await User.findById(req.userId);
     const skillsToAdd = req.body.skills;
 
-    // Отладочный лог для входных данных
-    // console.log('Received skillsToLearn:', skillsToAdd);
-
     for (const skillToAdd of skillsToAdd) {
       const availableSkill = await AvailableSkill.findById(skillToAdd._id);
 
@@ -19,16 +18,36 @@ exports.addSkillsToLearn = async (req, res) => {
         return res.status(404).json({ message: 'Skill not found' });
       }
 
-      // Проверьте, есть ли навык в skillsToLearn
-      const skillInLearnList = user.skillsToLearn.find((skill) => skill._id.toString() === availableSkill._id.toString());
+      if (!skillToAdd.level) {
+        return res.status(404).json({ message: 'Level must to be' });
+      }
 
-      if (!skillInLearnList) {
+      if (user.vip && user.skillsToLearn.length >= MAX_SKILLS_VIP) {
+        return res.status(400).json({ message: 'VIP users can add up to ' + MAX_SKILLS_VIP + ' skills to learn' });
+      }
+      
+      if (!user.vip && user.skillsToLearn.length >= MAX_SKILLS_NON_VIP) {
+        return res.status(400).json({ message: 'Non-VIP users can add up to ' + MAX_SKILLS_NON_VIP + ' skills to learn' });
+      }
+
+      const skillInLearnList = user.skillsToLearn.find(
+        (skill) => skill._id.toString() === availableSkill._id.toString()
+      );
+
+      const skillInTeachList = user.skillsToTeach.find(
+        (skill) => skill._id.toString() === availableSkill._id.toString()
+      );
+
+      if (skillInLearnList || skillInTeachList) {
+        return res.status(400).json({ message: 'This skill is already in the list of skills' });
+      } else {
         user.skillsToLearn.push({
           _id: availableSkill._id,
           theme: availableSkill.theme,
           category: availableSkill.category,
           subcategory: availableSkill.subcategory,
           skill: availableSkill.skill,
+          level: skillToAdd.level,
         });
       }
     }
@@ -41,15 +60,10 @@ exports.addSkillsToLearn = async (req, res) => {
   }
 };
 
-
-
 exports.addSkillsToTeach = async (req, res) => {
   try {
     const user = await User.findById(req.userId);
     const skillsToAdd = req.body.skills;
-
-    // Отладочный лог для входных данных
-    // console.log('Received skillsToTeach:', skillsToAdd);
 
     for (const skillToAdd of skillsToAdd) {
       const availableSkill = await AvailableSkill.findById(skillToAdd._id);
@@ -58,16 +72,36 @@ exports.addSkillsToTeach = async (req, res) => {
         return res.status(404).json({ message: 'Skill not found' });
       }
 
-      // Проверьте, есть ли навык в skillsToTeach
-      const skillInTeachList = user.skillsToTeach.find((skill) => skill._id.toString() === availableSkill._id.toString());
+      if (!skillToAdd.level) {
+        return res.status(404).json({ message: 'Level must to be' });
+      }
 
-      if (!skillInTeachList) {
+      if (user.vip && user.skillsToTeach.length >= MAX_SKILLS_VIP) {
+        return res.status(400).json({ message: 'VIP users can add up to ' + MAX_SKILLS_VIP + ' skills to teach' });
+      }
+      
+      if (!user.vip && user.skillsToTeach.length >= MAX_SKILLS_NON_VIP) {
+        return res.status(400).json({ message: 'Non-VIP users can add up to ' + MAX_SKILLS_NON_VIP + ' skills to teach' });
+      }
+
+      const skillInTeachList = user.skillsToTeach.find(
+        (skill) => skill._id.toString() === availableSkill._id.toString()
+      );
+
+      const skillInLearnList = user.skillsToLearn.find(
+        (skill) => skill._id.toString() === availableSkill._id.toString()
+      );
+
+      if (skillInTeachList || skillInLearnList) {
+        return res.status(400).json({ message: 'This skill is already in the list of skills to teach' });
+      } else {
         user.skillsToTeach.push({
           _id: availableSkill._id,
           theme: availableSkill.theme,
           category: availableSkill.category,
           subcategory: availableSkill.subcategory,
           skill: availableSkill.skill,
+          level: skillToAdd.level,
         });
       }
     }
