@@ -1,5 +1,6 @@
 const SwapRequest = require('../models/swapRequest');
 const User = require('../models/user');
+const averageValuesUpdater = ('../helpers/averageValuesUpdater')
 const socketAuthMiddleware = require('../middlewares/socketAuthMiddleware');
 
 const swapRequestController = (io) => {
@@ -49,6 +50,9 @@ const swapRequestController = (io) => {
           return socket.emit("swapRequestError", { status: 404, message: 'Swap request not found' });
         }
         swapRequest.status = 'accepted';
+        swapRequest.acceptAt = Date.now();
+
+        setImmediate(averageValuesUpdater.updateAverageResponseTime, swapRequest.receiverId);
 
         // Обновить skillsToTeach у получателя
         swapRequest.receiverData.skillsToTeach = [chosenSkill];

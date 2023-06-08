@@ -1,28 +1,33 @@
 const mongoose = require('mongoose');
 const User = require('../models/user');
 
-const sortUsersBySkillLevel = (users, currentUserSkillLevel) => {
+const sortUsersBySkillLevel = (users, currentUserSkillLevel, skillId) => {
   const skillLevels = ["beginner", "intermediate", "advanced"];
   const currentUserSkillLevelIndex = skillLevels.indexOf(currentUserSkillLevel);
 
-  return users.sort((a, b) => {
-    const aSkillLevelIndex = skillLevels.indexOf(a.skillsToTeach[0].level);
-    const bSkillLevelIndex = skillLevels.indexOf(b.skillsToTeach[0].level);
-  
-    if (aSkillLevelIndex === bSkillLevelIndex) {
-      return 0;
-    }
-  
-    if (aSkillLevelIndex < currentUserSkillLevelIndex && bSkillLevelIndex >= currentUserSkillLevelIndex) {
-      return 1;
-    }
-  
-    if (bSkillLevelIndex < currentUserSkillLevelIndex && aSkillLevelIndex >= currentUserSkillLevelIndex) {
-      return -1;
-    }
+  // Разделите пользователей на три группы в зависимости от уровня их навыка
+  const sameLevelUsers = [];
+  const higherLevelUsers = [];
+  const lowerLevelUsers = [];
 
-    return aSkillLevelIndex - bSkillLevelIndex;
-  });
+  for (const user of users) {
+    const userSkillLevelIndex = skillLevels.indexOf(user.skillsToTeach.find(skill => skill._id.toString() === skillId).level);
+    if (userSkillLevelIndex === currentUserSkillLevelIndex) {
+      sameLevelUsers.push(user);
+    } else if (userSkillLevelIndex > currentUserSkillLevelIndex) {
+      higherLevelUsers.push(user);
+    } else {
+      lowerLevelUsers.push(user);
+    }
+  }
+
+  // Сортируйте пользователей внутри каждой группы
+  sortMatchingUsers(sameLevelUsers, skillId);
+  sortMatchingUsers(higherLevelUsers, skillId);
+  sortMatchingUsers(lowerLevelUsers, skillId);
+
+  // Возвращайте пользователей в нужном порядке
+  return [...sameLevelUsers, ...higherLevelUsers, ...lowerLevelUsers];
 };
 
 const sortMatchingUsers = (matchingUsers, skillId) => {
@@ -85,9 +90,7 @@ exports.findMatchingUsers = async (req, res) => {
       return res.status(200).json({ matchingUsers: [] });
     }
 
-    sortMatchingUsers(matchingUsers, skillId);
-
-    const sortedUsers = sortUsersBySkillLevel(matchingUsers, currentUserSkillLevel);
+    const sortedUsers = sortUsersBySkillLevel(matchingUsers, currentUserSkillLevel, skillId);
 
     res.status(200).json({ matchingUsers: sortedUsers });
   } catch (error) {
@@ -95,5 +98,3 @@ exports.findMatchingUsers = async (req, res) => {
     res.status(500).json({ message: 'Server error', error });
   }
 };
-
-
