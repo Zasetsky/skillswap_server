@@ -40,23 +40,13 @@ function capitalizeFirstLetter(string) {
 exports.getProfile = async (req, res) => {
   try {
     const userId = req.params.userId;
-    const user = await User.findById(userId).select('-password');
+    const user = await User.findById(userId).select('-password -email');
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    res.json({
-      user: {
-        _id: user._id,
-        firstname: user.firstname,
-        lastname: user.lastname,
-        bio: user.bio,
-        avatar: user.avatar,
-        skillsToTeach: user.skillsToTeach,
-        skillsToLearn: user.skillsToLearn,
-      },
-    });
+    res.json(user);
 
   } catch (error) {
     console.error('Error during getProfile:', error);

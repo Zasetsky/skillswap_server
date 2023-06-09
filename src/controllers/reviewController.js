@@ -23,16 +23,15 @@ exports.createReview = async (req, res) => {
   }
 };
 
-exports.getCurrentDealReviews = async (req, res) => {
+exports.getUserReceivedReviews = async (req, res) => {
   try {
-    const dealId = req.params.dealId;
+    const userId = req.params.userId;
     
-    const reviews = await Review.find({ dealId });
+    const reviews = await Review.find({ receiver: userId }).populate('sender');
 
     res.status(200).json({ message: 'Reviews for current deal fetched successfully', reviews });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching reviews for current deal', error });
+    console.error('Error fetching reviews for current deal:', error);
+    res.status(500).json({ message: 'Error fetching reviews for current deal', error: error.message });
   }
 };
-
-

@@ -39,7 +39,7 @@ const reviewSchema = new mongoose.Schema({
   },
   isLate: {
     type: Boolean,
-    required: true,
+    default: false,
   },
   comment: {
     type: String,
