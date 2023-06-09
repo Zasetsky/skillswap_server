@@ -1,4 +1,5 @@
 const SwapRequest = require('../models/swapRequest');
+const User = require('../models/user');
 
 exports.updateAverageResponseTime = async (userId) => {
     try {
@@ -8,6 +9,7 @@ exports.updateAverageResponseTime = async (userId) => {
         });
 
         if (swapRequests.length > 0) {
+            console.log('Hello!');
             let totalResponseTime = 0;
 
             swapRequests.forEach(request => {
@@ -19,8 +21,8 @@ exports.updateAverageResponseTime = async (userId) => {
 
             const user = await User.findById(userId);
             user.averageResponseTime = averageResponseTime;
-            await user.save();
 
+            await user.save();
             console.log('Average response time updated:', user.averageResponseTime);
         }
     } catch (error) {

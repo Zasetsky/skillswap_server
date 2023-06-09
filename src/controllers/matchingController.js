@@ -5,29 +5,25 @@ const sortUsersBySkillLevel = (users, currentUserSkillLevel, skillId) => {
   const skillLevels = ["beginner", "intermediate", "advanced"];
   const currentUserSkillLevelIndex = skillLevels.indexOf(currentUserSkillLevel);
 
-  // Разделите пользователей на три группы в зависимости от уровня их навыка
-  const sameLevelUsers = [];
-  const higherLevelUsers = [];
-  const lowerLevelUsers = [];
+  const levelUsers = [[], [], []];
 
   for (const user of users) {
     const userSkillLevelIndex = skillLevels.indexOf(user.skillsToTeach.find(skill => skill._id.toString() === skillId).level);
-    if (userSkillLevelIndex === currentUserSkillLevelIndex) {
-      sameLevelUsers.push(user);
-    } else if (userSkillLevelIndex > currentUserSkillLevelIndex) {
-      higherLevelUsers.push(user);
-    } else {
-      lowerLevelUsers.push(user);
-    }
+    levelUsers[userSkillLevelIndex].push(user);
   }
 
-  // Сортируйте пользователей внутри каждой группы
-  sortMatchingUsers(sameLevelUsers, skillId);
-  sortMatchingUsers(higherLevelUsers, skillId);
-  sortMatchingUsers(lowerLevelUsers, skillId);
+  levelUsers.forEach(level => sortMatchingUsers(level, skillId));
 
-  // Возвращайте пользователей в нужном порядке
-  return [...sameLevelUsers, ...higherLevelUsers, ...lowerLevelUsers];
+  let sortedUsers = [];
+  if (currentUserSkillLevelIndex === 0) {
+    sortedUsers = [...levelUsers[0], ...levelUsers[1], ...levelUsers[2]];
+  } else if (currentUserSkillLevelIndex === 1) {
+    sortedUsers = [...levelUsers[1], ...levelUsers[2], ...levelUsers[0]];
+  } else {
+    sortedUsers = [...levelUsers[2], ...levelUsers[1], ...levelUsers[0]];
+  }
+
+  return sortedUsers;
 };
 
 const sortMatchingUsers = (matchingUsers, skillId) => {
@@ -44,6 +40,13 @@ const sortMatchingUsers = (matchingUsers, skillId) => {
       return bSkillRating - aSkillRating;
     }
 
+    // Затем сортировка по среднему времени ответа
+    const aAvgResponseTime = a.averageResponseTime || 0;
+    const bAvgResponseTime = b.averageResponseTime || 0;
+    if (aAvgResponseTime !== bAvgResponseTime) {
+        return aAvgResponseTime - bAvgResponseTime;
+    }
+
     // Затем сортировка по лояльности
     if (b.loyaltyRating !== a.loyaltyRating) {
       return b.loyaltyRating - a.loyaltyRating;
@@ -54,8 +57,13 @@ const sortMatchingUsers = (matchingUsers, skillId) => {
       return b.reliabilityRating - a.reliabilityRating;
     }
 
-    // Наконец, сортировка по общему рейтингу навыков
-    return b.totalSkillsRating - a.totalSkillsRating;
+    // Затем сортировка по общему рейтингу навыков
+    if (b.totalSkillsRating !== a.totalSkillsRating) {
+      return b.totalSkillsRating - a.totalSkillsRating;
+    }
+
+    // Наконец, сортировка по времени последнего входа в систему
+    return b.lastSeen - a.lastSeen;
   });
 };
 
@@ -73,11 +81,15 @@ exports.findMatchingUsers = async (req, res) => {
     const currentUserSkillsToTeachIds = currentUser.skillsToTeach.map(skill => skill._id.toString());
     const currentUserSkillLevel = currentUser.skillsToLearn.find(skill => skill._id.toString() === skillId).level;
 
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
     // Искать пользователей, у которых есть skillsToTeach для полученного навыка
     // и skillsToLearn, которые у текущего пользователя есть в skillsToTeach
     const matchingUsers = await User.find({
       _id: { $ne: currentUserId },
       'skillsToTeach._id': skillId,
+      lastSeen: { $gte: oneMonthAgo },
       'skillsToLearn': {
         $elemMatch: {
           '_id': { $in: currentUserSkillsToTeachIds },

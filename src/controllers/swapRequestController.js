@@ -1,6 +1,6 @@
 const SwapRequest = require('../models/swapRequest');
 const User = require('../models/user');
-const averageValuesUpdater = ('../helpers/averageValuesUpdater')
+const averageValuesUpdater = require('../helpers/averageValuesUpdater')
 const socketAuthMiddleware = require('../middlewares/socketAuthMiddleware');
 
 const swapRequestController = (io) => {
@@ -52,8 +52,6 @@ const swapRequestController = (io) => {
         swapRequest.status = 'accepted';
         swapRequest.acceptAt = Date.now();
 
-        setImmediate(averageValuesUpdater.updateAverageResponseTime, swapRequest.receiverId);
-
         // Обновить skillsToTeach у получателя
         swapRequest.receiverData.skillsToTeach = [chosenSkill];
 
@@ -66,6 +64,8 @@ const swapRequestController = (io) => {
         await User.updateOne({ _id: swapRequest.receiverId, "skillsToLearn._id": chosenSkill._id }, { $set: { "skillsToLearn.$.isActive": true } });
 
         await swapRequest.save();
+
+        setImmediate(averageValuesUpdater.updateAverageResponseTime, swapRequest.receiverId);
 
         io.to(swapRequest.receiverId.toString()).emit("swapRequestAccepted", { status: 200, message: 'Swap request accepted' });
         io.to(swapRequest.senderId.toString()).emit("swapRequestAccepted", { status: 200, message: 'Swap request accepted' });
