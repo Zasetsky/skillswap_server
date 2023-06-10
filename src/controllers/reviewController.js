@@ -4,18 +4,25 @@ const ratingUpdater = require('../helpers/ratingUpdater');
 exports.createReview = async (req, res) => {
   try {
     const reviewData = req.body;
+
+    // Проверка на наличие отзыва с таким dealId и formType
+    const existingReview = await Review.findOne({ dealId: reviewData.dealId, formType: reviewData.formType });
+    if (existingReview) {
+      return res.status(400).json({ message: 'Review for this deal and form type already exists' });
+    }
+
     const review = new Review(reviewData);
     await review.save();
 
     // Обновить рейтинг навыка после успешного создания отзыва
-    await ratingUpdater.updateSkillRating(review.receiver, review.skill);
-    await ratingUpdater.updateTotalSkillsRating(review.receiver);
+    ratingUpdater.updateSkillRating(review.receiver, review.skill._id);
+    ratingUpdater.updateTotalSkillsRating(review.receiver);
 
     // Обновить reliabilityRating после успешного создания отзыва
-    await ratingUpdater.updateReliabilityRating(review.receiver);
+    ratingUpdater.updateReliabilityRating(review.receiver);
 
     // Обновить engagementRating после успешного создания отзыва
-    await ratingUpdater.updateLoyaltyRating(review.sender);
+    ratingUpdater.updateLoyaltyRating(review.sender);
 
     res.status(201).json({ message: 'Review successfully created and rating updated', review });
   } catch (error) {

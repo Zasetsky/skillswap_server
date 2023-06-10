@@ -27,8 +27,7 @@ const reviewSchema = new mongoose.Schema({
     required: true,
   },
   skill: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Skill',
+    type: Object,
     required: true,
   },
   skillRating: {

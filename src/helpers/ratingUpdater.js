@@ -4,11 +4,9 @@ const Deal = require('../models/deal');
 
 exports.updateSkillRating = async (userId, skillId) => {
     try {
-        const [user, reviews] = await Promise.all([
-            User.findById(userId),
-            Review.find({ receiver: userId, skill: skillId })
-        ]);
-        
+        const user = await User.findById(userId);
+        const reviews = await Review.find({ receiver: userId, 'skill._id': skillId });
+
         const totalRating = reviews.reduce((sum, r) => sum + r.skillRating, 0);
         const averageRating = totalRating / reviews.length;
 
@@ -19,7 +17,7 @@ exports.updateSkillRating = async (userId, skillId) => {
             user.skillsToTeach[skillToTeachIndex].isRated = true;
 
             await user.save();
-            console.log('Skill rating updated:', user.skillsToTeach[skillToTeachIndex]);
+            console.log('Skill rating updated:', user.skillsToTeach[skillToTeachIndex].rating);
         }
     } catch (error) {
         console.error('Error updating skill rating:', error);
