@@ -154,7 +154,8 @@ const swapRequestController = (io) => {
     socket.on("getAllSwapRequests", async () => {
       try {
         const currentUserId = socket.userId;
-        const swapRequests = await SwapRequest.find({ $or: [{ senderId: currentUserId }, { receiverId: currentUserId }] });
+        const swapRequests = await SwapRequest.find({ $or: [{ senderId: currentUserId }, { receiverId: currentUserId }] })
+            .sort({ _id: -1 });
         
         console.log("Получены все запросы на обмен для текущего пользователя");
         socket.emit("allSwapRequests", swapRequests);
@@ -163,6 +164,7 @@ const swapRequestController = (io) => {
         socket.emit("getAllSwapRequestsError", { status: 500, error: "Error fetching all swap requests" });
       }
     });
+    
 
     socket.on("getCurrentSwapRequest", async (data) => {
       try {

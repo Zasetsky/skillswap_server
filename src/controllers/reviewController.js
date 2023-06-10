@@ -49,7 +49,10 @@ exports.getUserReceivedReviews = async (req, res) => {
   try {
     const userId = req.params.userId;
     
-    const reviews = await Review.find({ receiver: userId }).populate('sender');
+    let reviews = await Review.find({ receiver: userId }).populate('sender');
+
+    // Перевернуть массив
+    reviews = reviews.reverse();
 
     res.status(200).json({ message: 'Reviews for current deal fetched successfully', reviews });
   } catch (error) {
