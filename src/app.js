@@ -17,6 +17,8 @@ const chatController = require('./controllers/chatController');
 const dealController = require('./controllers/dealController');
 const onlineUsersController = require('./controllers/onlineUsersController');
 
+const { createReview } = require('./controllers/reviewController');
+
 const cors = require('cors');
 const path = require('path');
 const http = require('http');
@@ -64,6 +66,7 @@ onlineUsersController(io);
 chatController(io);
 swapRequestController(io);
 dealController(io);
+createReview(io);
 
 // Observer
 setupCronJobs(io);

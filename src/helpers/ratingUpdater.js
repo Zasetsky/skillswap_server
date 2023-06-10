@@ -8,10 +8,9 @@ exports.updateSkillRating = async (userId, skillId) => {
         const reviews = await Review.find({ receiver: userId, 'skill._id': skillId });
 
         const totalRating = reviews.reduce((sum, r) => sum + r.skillRating, 0);
-        const averageRating = totalRating / reviews.length;
+        const averageRating = parseFloat((totalRating / reviews.length).toFixed(2));
 
         const skillToTeachIndex = user.skillsToTeach.findIndex(s => s._id.toString() === skillId.toString());
-        console.log(skillToTeachIndex);
         if (skillToTeachIndex !== -1) {
             user.skillsToTeach[skillToTeachIndex].rating = averageRating;
             user.skillsToTeach[skillToTeachIndex].isRated = true;
@@ -30,7 +29,7 @@ exports.updateTotalSkillsRating = async (userId) => {
 
         const ratedSkills = user.skillsToTeach.filter(skill => skill.isRated);
         const totalRating = ratedSkills.reduce((sum, skill) => sum + skill.rating, 0);
-        const averageRating = ratedSkills.length > 0 ? totalRating / ratedSkills.length : 0;
+        const averageRating = ratedSkills.length > 0 ? parseFloat((totalRating / ratedSkills.length).toFixed(2)) : 0;
 
         user.totalSkillsRating = averageRating;
         await user.save();
@@ -61,7 +60,7 @@ exports.updateReliabilityRating = async (userId) => {
 
         const baseReliabilityRating = 5;
         const lateRatio = lateDealsFiltered.length / deals.length;
-        const reliabilityRating = baseReliabilityRating * (1 - lateRatio);
+        const reliabilityRating = parseFloat((baseReliabilityRating * (1 - lateRatio)).toFixed(2));
 
         user.reliabilityRating = reliabilityRating;
         await user.save();
@@ -87,7 +86,7 @@ exports.updateLoyaltyRating = async (userId) => {
     const totalDeals = deals.length;
     const totalReviewedDeals = reviewedDealsFiltered.length;
 
-    const loyaltyRating = totalDeals > 0 ? (totalReviewedDeals / totalDeals) * 5 : 0;
+    const loyaltyRating = totalDeals > 0 ? parseFloat(((totalReviewedDeals / totalDeals) * 5).toFixed(2)) : 0;
 
     user.loyaltyRating = loyaltyRating;
     await user.save();
@@ -96,7 +95,3 @@ exports.updateLoyaltyRating = async (userId) => {
     console.error('Error updating loyalty rating:', error);
   }
 };
-
-
-
-
