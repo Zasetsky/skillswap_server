@@ -10,6 +10,20 @@ const swapRequestController = (io) => {
     // Отправка запроса на обмен
     socket.on("sendSwapRequest", async (data) => {
       const { receiverId, senderId, senderData, receiverData } = data;
+      const skillId = receiverData.skillsToLearn._id;
+
+      // Проверка на существование запроса на обмен
+      const existingSwapRequest = await SwapRequest.findOne({
+        senderId,
+        receiverId,
+        'senderData.skillsToLearn': { $elemMatch: { _id: skillId } },
+        status: 'pending',
+      });
+      
+      // Если запрос на обмен уже существует, отправьте сообщение об ошибке
+      if (existingSwapRequest) {
+        return socket.emit("swapRequestError", { status: 400, error: "Swap request already exists" });
+      }
       
       try {
         // Создаем новый объект запроса на обмен для получателя с новым ObjectId
