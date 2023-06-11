@@ -13,15 +13,16 @@ const swapRequestController = (io) => {
     socket.on("sendSwapRequest", async (data) => {
       const { receiverId, senderId, senderData, receiverData } = data;
       const skillId = receiverData.skillsToLearn._id;
-    
+
       try {
+        await userHelper.checkUserIsActiveSkill(senderId, skillId);
         await swapRequestHelper.checkExistingSwapRequest(senderId, receiverId, skillId);
-        await swapRequestHelper.createNewSwapRequest(senderId, receiverId, senderData, receiverData);
+
+        const swapRequest = await swapRequestHelper.createNewSwapRequest(senderId, receiverId, senderData, receiverData);
         await userHelper.updateUserIsActiveSkill(senderId, skillId);
-        const messages = swapRequestHelper.emitSuccessMessage(receiverId, senderId);
-        messages.forEach(({ id, message }) => {
-          io.to(id).emit("swapRequestSent", message);
-        });
+
+        io.to(receiverId).emit("swapRequestSent", swapRequest);
+        io.to(senderId).emit("swapRequestSent", swapRequest);
       } catch (error) {
         console.error("Error sending swap request:", error);
         socket.emit("swapRequestError", { status: 500, error: "Error sending swap request" });
@@ -49,7 +50,7 @@ const swapRequestController = (io) => {
     // Отклонить запрос на обмен
     socket.on("rejectSwapRequest", async (data) => {
       try {
-        const swapRequest = await swapRequestHelper.rejectSwapRequest(data); // вынесли в helper
+        const swapRequest = await swapRequestHelper.rejectSwapRequest(data);
         await swapRequest.save();
 
         io.to(swapRequest.receiverId.toString()).emit("swapRequestRejected", { status: 200, message: "SwapRequest statuses changed on'rejected'" });
@@ -60,10 +61,11 @@ const swapRequestController = (io) => {
       }
     });
 
+
     // Удалить запрос на обмен
     socket.on("deleteSwapRequest", async (data) => {
       try {
-        const swapRequest = await swapRequestHelper.deleteSwapRequest(data); // вынесли в helper
+        const swapRequest = await swapRequestHelper.deleteSwapRequest(data);
 
         io.to(swapRequest.receiverId.toString()).emit("swapRequestDeleted", { status: 200, message: 'Swap request deleted' });
         io.to(swapRequest.senderId.toString()).emit("swapRequestDeleted", { status: 200, message: 'Swap request deleted' });
@@ -73,11 +75,12 @@ const swapRequestController = (io) => {
       }
     });
 
+
     // Получить все swapRequests
     socket.on("getAllSwapRequests", async () => {
       try {
         const currentUserId = socket.userId;
-        const swapRequests = await swapRequestHelper.getAllSwapRequests(currentUserId); // вынесли в helper
+        const swapRequests = await swapRequestHelper.getAllSwapRequests(currentUserId);
         socket.emit("allSwapRequests", swapRequests);
       } catch (error) {
         console.error("Ошибка при получении всех запросов на обмен:", error);
@@ -86,9 +89,10 @@ const swapRequestController = (io) => {
     });
 
 
+    // Получить текущий swapRequest
     socket.on("getCurrentSwapRequest", async (data) => {
       try {
-        const swapRequest = await swapRequestHelper.getCurrentSwapRequest(data); // вынесли в helper
+        const swapRequest = await swapRequestHelper.getCurrentSwapRequest(data);
         socket.emit("currentSwapRequest", swapRequest);
       } catch (error) {
         console.error("Ошибка при получении текущего запроса на обмен:", error);
