@@ -1,51 +1,27 @@
-const SwapRequest = require('../models/swapRequest');
-const User = require('../models/user');
-const averageValuesUpdater = require('../helpers/averageValuesUpdater')
 const socketAuthMiddleware = require('../middlewares/socketAuthMiddleware');
+
+const averageValuesUpdater = require('../helpers/averageValuesUpdater');
+const swapRequestHelper = require('../helpers/swapRequestHelper');
+const userHelper = require('../helpers/userHelper');
 
 const swapRequestController = (io) => {
   io.use(socketAuthMiddleware).on("connection", (socket) => {
     console.log("User connected to swap requests");
 
+
     // Отправка запроса на обмен
     socket.on("sendSwapRequest", async (data) => {
       const { receiverId, senderId, senderData, receiverData } = data;
       const skillId = receiverData.skillsToLearn._id;
-
-      // Проверка на существование запроса на обмен
-      const existingSwapRequest = await SwapRequest.findOne({
-        senderId,
-        receiverId,
-        'senderData.skillsToLearn': { $elemMatch: { _id: skillId } },
-        status: 'pending',
-      });
-      
-      // Если запрос на обмен уже существует, отправьте сообщение об ошибке
-      if (existingSwapRequest) {
-        return socket.emit("swapRequestError", { status: 400, error: "Swap request already exists" });
-      }
-      
+    
       try {
-        // Создаем новый объект запроса на обмен для получателя с новым ObjectId
-        const newSwapRequest = new SwapRequest({
-          senderId,
-          receiverId,
-          senderData,
-          receiverData,
-          status: "pending",
+        await swapRequestHelper.checkExistingSwapRequest(senderId, receiverId, skillId);
+        await swapRequestHelper.createNewSwapRequest(senderId, receiverId, senderData, receiverData);
+        await userHelper.updateUserIsActiveSkill(senderId, skillId);
+        const messages = swapRequestHelper.emitSuccessMessage(receiverId, senderId);
+        messages.forEach(({ id, message }) => {
+          io.to(id).emit("swapRequestSent", message);
         });
-
-        await newSwapRequest.save();
-
-        // Найти пользователя и обновить isActive для соответствующего навыка
-        const skillId = receiverData.skillsToLearn._id;
-
-        await User.updateOne({ _id: senderId, "skillsToLearn._id": skillId }, { $set: { "skillsToLearn.$.isActive": true } });
-        
-        // Отправляем уведомление об успешной отправке запроса на обмен
-        io.to(receiverId).emit("swapRequestSent", { status: 200, message: "Swap request received successfully" });
-        io.to(senderId).emit("swapRequestSent", { status: 200, message: "Swap request sent successfully" });
-
       } catch (error) {
         console.error("Error sending swap request:", error);
         socket.emit("swapRequestError", { status: 500, error: "Error sending swap request" });
@@ -56,27 +32,7 @@ const swapRequestController = (io) => {
     // Принять запрос на обмен
     socket.on("acceptSwapRequest", async (data) => {
       try {
-        const { swapRequestId, chosenSkill } = data;
-
-        // Найти запрос на обмен с заданным swapRequestId и обновить статус на "accepted"
-        const swapRequest = await SwapRequest.findById(swapRequestId);
-        if (!swapRequest) {
-          return socket.emit("swapRequestError", { status: 404, message: 'Swap request not found' });
-        }
-        swapRequest.status = 'accepted';
-        swapRequest.acceptAt = Date.now();
-
-        // Обновить skillsToTeach у получателя
-        swapRequest.receiverData.skillsToTeach = [chosenSkill];
-
-        // Обновить skillsToTeach у отправителя, оставив только chosenSkill
-        swapRequest.senderData.skillsToTeach = swapRequest.senderData.skillsToTeach.filter(skill => {
-          return skill._id.toString() === chosenSkill._id.toString();
-        });
-
-        // Найти пользователя и обновить isActive для соответствующего навыка
-        await User.updateOne({ _id: swapRequest.receiverId, "skillsToLearn._id": chosenSkill._id }, { $set: { "skillsToLearn.$.isActive": true } });
-
+        const swapRequest = await swapRequestHelper.acceptSwapRequest(data);
         await swapRequest.save();
 
         setImmediate(averageValuesUpdater.updateAverageResponseTime, swapRequest.receiverId);
@@ -93,29 +49,9 @@ const swapRequestController = (io) => {
     // Отклонить запрос на обмен
     socket.on("rejectSwapRequest", async (data) => {
       try {
-        const { swapRequestId } = data;
-    
-        if (!swapRequestId) {
-          return socket.emit("rejectSwapRequestError", { status: 400, error: "Not Found swapRequests _id" });
-        }
-    
-        const swapRequest = await SwapRequest.findById(swapRequestId);
-        if (!swapRequest) {
-          return socket.emit("rejectSwapRequestError", { status: 404, error: "Swap request not found" });
-        }
-    
-        // Получаем _id умения
-        const skillId = swapRequest.receiverData.skillsToLearn[0]._id;
-    
-        // Обновляем пользователя отправителя, меняя isActive на false для соответствующего умения
-        await User.updateOne({ _id: swapRequest.senderId, "skillsToLearn._id": skillId }, { $set: { "skillsToLearn.$.isActive": false } });
-    
-        // Обновляем пользователя получателя, меняя isActive на false для соответствующего умения
-        await User.updateOne({ _id: swapRequest.receiverId, "skillsToLearn._id": skillId }, { $set: { "skillsToLearn.$.isActive": false } });
-    
-        swapRequest.status = "rejected";
+        const swapRequest = await swapRequestHelper.rejectSwapRequest(data); // вынесли в helper
         await swapRequest.save();
-    
+
         io.to(swapRequest.receiverId.toString()).emit("swapRequestRejected", { status: 200, message: "SwapRequest statuses changed on'rejected'" });
         io.to(swapRequest.senderId.toString()).emit("swapRequestRejected", { status: 200, message: "SwapRequest statuses changed on'rejected'" });
       } catch (error) {
@@ -124,40 +60,13 @@ const swapRequestController = (io) => {
       }
     });
 
-
     // Удалить запрос на обмен
     socket.on("deleteSwapRequest", async (data) => {
       try {
-        const { requestId } = data;
-        console.log("Удаляем запрос на обмен с ID:", requestId);
-    
-        // Находим запрос на обмен до его удаления, чтобы получить данные об умении
-        const swapRequest = await SwapRequest.findById(requestId);
-    
-        if (!swapRequest) {
-          console.log("Ошибка при удалении запроса на обмен: запрос не найден");
-          socket.emit("deleteSwapRequestError", { status: 500, error: "Error deleting swap request: request not found" });
-          return;
-        }
-    
-        // Получаем _id умения
-        const skillId = swapRequest.receiverData.skillsToLearn[0]._id;
-    
-        // Обновляем пользователя, меняя isActive на false для соответствующего умения
-        await User.updateOne({ _id: swapRequest.senderId, "skillsToLearn._id": skillId }, { $set: { "skillsToLearn.$.isActive": false } });
-    
-        // Удаляем запрос на обмен
-        const deletedSwapRequest = await SwapRequest.findByIdAndDelete(requestId);
+        const swapRequest = await swapRequestHelper.deleteSwapRequest(data); // вынесли в helper
 
-        if (deletedSwapRequest) {
-          console.log("Запрос на обмен успешно удалён");
-
-          io.to(swapRequest.receiverId.toString()).emit("swapRequestDeleted", { status: 200, message: 'Swap request deleted' });
-          io.to(swapRequest.senderId.toString()).emit("swapRequestDeleted", { status: 200, message: 'Swap request deleted' });
-        } else {
-          console.log("Ошибка при удалении запроса на обмен");
-          socket.emit("deleteSwapRequestError", { status: 500, error: "Error deleting swap request" });
-        }
+        io.to(swapRequest.receiverId.toString()).emit("swapRequestDeleted", { status: 200, message: 'Swap request deleted' });
+        io.to(swapRequest.senderId.toString()).emit("swapRequestDeleted", { status: 200, message: 'Swap request deleted' });
       } catch (error) {
         console.error("Ошибка при удалении запроса на обмен:", error);
         socket.emit("deleteSwapRequestError", { status: 500, error: "Error deleting swap request" });
@@ -168,25 +77,18 @@ const swapRequestController = (io) => {
     socket.on("getAllSwapRequests", async () => {
       try {
         const currentUserId = socket.userId;
-        const swapRequests = await SwapRequest.find({ $or: [{ senderId: currentUserId }, { receiverId: currentUserId }] })
-            .sort({ _id: -1 });
-        
-        console.log("Получены все запросы на обмен для текущего пользователя");
+        const swapRequests = await swapRequestHelper.getAllSwapRequests(currentUserId); // вынесли в helper
         socket.emit("allSwapRequests", swapRequests);
       } catch (error) {
         console.error("Ошибка при получении всех запросов на обмен:", error);
         socket.emit("getAllSwapRequestsError", { status: 500, error: "Error fetching all swap requests" });
       }
     });
-    
+
 
     socket.on("getCurrentSwapRequest", async (data) => {
       try {
-        const { swapRequestId } = data;
-
-        const swapRequest = await SwapRequest.findOne({ _id: swapRequestId });
-    
-        console.log("Получен текущий запрос на обмен");
+        const swapRequest = await swapRequestHelper.getCurrentSwapRequest(data); // вынесли в helper
         socket.emit("currentSwapRequest", swapRequest);
       } catch (error) {
         console.error("Ошибка при получении текущего запроса на обмен:", error);
