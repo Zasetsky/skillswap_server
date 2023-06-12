@@ -1,7 +1,7 @@
 const User = require('../models/user');
 
 // Обновляет статус активности выбранного умения пользователя
-exports.updateUserIsActiveSkill = async (userId, skillId) => {
+exports.updateUserIsActiveSkillOnTrue = async (userId, skillId) => {
   await User.updateOne({ _id: userId, "skillsToLearn._id": skillId }, { $set: { "skillsToLearn.$.isActive": true } });
 };
 
@@ -13,11 +13,9 @@ exports.checkUserIsActiveSkill = async (userId, skillId) => {
     throw new Error("User not found");
   }
 
-  const skill = user.skills.find(skill => skill._id.toString() === skillId);
+  const skill = user.skillsToLearn.find(skill => skill._id.toString() === skillId);
 
   if (!skill || skill.isActive) {
     throw new Error("User skill is already active");
   }
-
-  return skill.isActive;
 };

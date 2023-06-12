@@ -16,6 +16,20 @@ exports.checkExistingSwapRequest = async (senderId, receiverId, skillId) => {
   }
 };
 
+// Проверяет, нет ли активных сделок.
+exports.CheckActiveSwapRequest = async (senderId, receiverId) => {
+  const activeSwapRequest = await SwapRequest.findOne({
+    $or: [
+      { senderId: senderId, receiverId: receiverId, status: 'accepted' },
+      { senderId: receiverId, receiverId: senderId, status: 'accepted' }
+    ]
+  });
+
+  if (activeSwapRequest) {
+    throw new Error('An active swap request already exists between these users');
+  }
+};
+
 // Создаёт новый запрос на обмен
 exports.createNewSwapRequest = async (senderId, receiverId, senderData, receiverData) => {
   const newSwapRequest = new SwapRequest({
@@ -71,6 +85,20 @@ exports.updateSenderSkillsToTeach = (swapRequest, chosenSkill) => {
   return swapRequest;
 };
 
+// sendSwapRequest процесс
+exports.sendSwapRequest = async (data) => {
+  const { receiverId, senderId, senderData, receiverData } = data;
+  const skillId = receiverData.skillsToLearn._id;
+
+  await userHelper.checkUserIsActiveSkill(senderId, skillId);
+  await this.CheckActiveSwapRequest(senderId, receiverId);
+  await this.checkExistingSwapRequest(senderId, receiverId, skillId);
+
+  const newSwapRequest = await this.createNewSwapRequest(senderId, receiverId, senderData, receiverData);
+
+  return newSwapRequest;
+};
+
 // Процесс принятия запроса на обмен
 exports.acceptSwapRequest = async (data) => {
   const { swapRequestId, chosenSkill } = data;
@@ -79,21 +107,34 @@ exports.acceptSwapRequest = async (data) => {
   swapRequest = this.updateReceiverSkillsToTeach(swapRequest, chosenSkill);
   swapRequest = this.updateSenderSkillsToTeach(swapRequest, chosenSkill);
 
-  await userHelper.updateUserIsActiveSkill(swapRequest.receiverId, chosenSkill._id);
-  await this.deletePendingSwapRequests(swapRequest.senderId, chosenSkill);
+  // Сохраняем изменения в swapRequest сразу
+  await swapRequest.save();
 
+  await userHelper.updateUserIsActiveSkillOnTrue(swapRequest.receiverId, chosenSkill._id);
+  await userHelper.updateUserIsActiveSkillOnTrue(swapRequest.senderId, swapRequest.senderData.skillsToLearn[0]._id);
+  
+  await this.deletePendingSwapRequests(swapRequest.senderId, swapRequest.receiverId, swapRequest.senderData.skillsToLearn[0]._id, chosenSkill._id);
+
+  // Возвращаем уже сохраненный swapRequest
   return swapRequest;
 };
 
 // Удаляет ожидающие запросы на обмен
-exports.deletePendingSwapRequests = async (senderId, chosenSkill) => {
-  await SwapRequest.deleteMany(
-    {
-      senderId,
-      'senderData.skillsToLearn': { $elemMatch: { _id: chosenSkill._id } },
-      status: 'pending',
-    },
-  );
+exports.deletePendingSwapRequests = async (senderId, receiverId, skillId, chosenSkillId) => {
+  await SwapRequest.deleteMany({
+    $or: [
+      {
+        senderId: senderId,
+        'senderData.skillsToLearn': { $elemMatch: { _id: skillId } },
+        status: 'pending',
+      },
+      {
+        senderId: receiverId,
+        'senderData.skillsToLearn': { $elemMatch: { _id: chosenSkillId } },
+        status: 'pending',
+      },
+    ],
+  });
 };
 
 // Отклоняет запрос на обмен
@@ -105,7 +146,6 @@ exports.rejectSwapRequest = async (data) => {
   }
 
   const swapRequest = await this.updateSwapRequestStatus(swapRequestId, 'rejected');
-  await userHelper.updateUserIsActiveSkill(swapRequest.senderId, swapRequest.senderData.skillsToLearn[0]._id);
 
   return swapRequest;
 };
@@ -121,7 +161,6 @@ exports.deleteSwapRequest = async (data) => {
     throw new Error("Error deleting swap request: request not found");
   }
 
-  await userHelper.updateUserIsActiveSkill(swapRequest.senderId, swapRequest.senderData.skillsToLearn[0]._id);
   const deletedSwapRequest = await SwapRequest.findByIdAndDelete(requestId);
 
   if (!deletedSwapRequest) {
@@ -143,19 +182,6 @@ exports.getAllSwapRequests = async (currentUserId) => {
 exports.getCurrentSwapRequest = async (data) => {
   const { swapRequestId } = data;
   const swapRequest = await SwapRequest.findOne({ _id: swapRequestId });
-
-  return swapRequest;
-};
-
-// Обновляет статус запроса на обмен
-exports.updateSwapRequestStatus = async (swapRequestId, status) => {
-  const swapRequest = await SwapRequest.findById(swapRequestId);
-  if (!swapRequest) {
-    throw new Error("Swap request not found");
-  }
-
-  swapRequest.status = status;
-  await swapRequest.save();
 
   return swapRequest;
 };

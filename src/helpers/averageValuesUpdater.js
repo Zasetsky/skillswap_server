@@ -9,7 +9,6 @@ exports.updateAverageResponseTime = async (userId) => {
         });
 
         if (swapRequests.length > 0) {
-            console.log('Hello!');
             let totalResponseTime = 0;
 
             swapRequests.forEach(request => {

@@ -2,7 +2,6 @@ const socketAuthMiddleware = require('../middlewares/socketAuthMiddleware');
 
 const averageValuesUpdater = require('../helpers/averageValuesUpdater');
 const swapRequestHelper = require('../helpers/swapRequestHelper');
-const userHelper = require('../helpers/userHelper');
 
 const swapRequestController = (io) => {
   io.use(socketAuthMiddleware).on("connection", (socket) => {
@@ -11,18 +10,11 @@ const swapRequestController = (io) => {
 
     // Отправка запроса на обмен
     socket.on("sendSwapRequest", async (data) => {
-      const { receiverId, senderId, senderData, receiverData } = data;
-      const skillId = receiverData.skillsToLearn._id;
-
       try {
-        await userHelper.checkUserIsActiveSkill(senderId, skillId);
-        await swapRequestHelper.checkExistingSwapRequest(senderId, receiverId, skillId);
+        const newSwapRequest = await swapRequestHelper.sendSwapRequest(data);
 
-        const swapRequest = await swapRequestHelper.createNewSwapRequest(senderId, receiverId, senderData, receiverData);
-        await userHelper.updateUserIsActiveSkill(senderId, skillId);
-
-        io.to(receiverId).emit("swapRequestSent", swapRequest);
-        io.to(senderId).emit("swapRequestSent", swapRequest);
+        io.to(data.receiverId).emit("swapRequestSent", newSwapRequest);
+        io.to(data.senderId).emit("swapRequestSent", newSwapRequest);
       } catch (error) {
         console.error("Error sending swap request:", error);
         socket.emit("swapRequestError", { status: 500, error: "Error sending swap request" });
@@ -34,12 +26,11 @@ const swapRequestController = (io) => {
     socket.on("acceptSwapRequest", async (data) => {
       try {
         const swapRequest = await swapRequestHelper.acceptSwapRequest(data);
-        await swapRequest.save();
 
         setImmediate(averageValuesUpdater.updateAverageResponseTime, swapRequest.receiverId);
 
-        io.to(swapRequest.receiverId.toString()).emit("swapRequestAccepted", { status: 200, message: 'Swap request accepted' });
-        io.to(swapRequest.senderId.toString()).emit("swapRequestAccepted", { status: 200, message: 'Swap request accepted' });
+        io.to(swapRequest.receiverId.toString()).emit("swapRequestAccepted", { status: 200, message: "SwapRequest statuses changed on'accepted'" });
+        io.to(swapRequest.senderId.toString()).emit("swapRequestAccepted", { status: 200, message: "SwapRequest statuses changed on'accepted'" });
       } catch (error) {
         console.error('Error in acceptSwapRequest:', error);
         socket.emit("acceptSwapRequestError", { status: 500, message: 'Server error', error });
