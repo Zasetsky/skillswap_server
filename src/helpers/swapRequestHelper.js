@@ -121,18 +121,26 @@ exports.acceptSwapRequest = async (data) => {
 
 // Удаляет ожидающие запросы на обмен
 exports.deletePendingSwapRequests = async (senderId, receiverId, skillId, chosenSkillId) => {
+  const allPendingRequests = await SwapRequest.find({
+    $or: [
+      { senderId: senderId, status: 'pending' },
+      { receiverId: receiverId, status: 'pending' },
+      { 'senderData.skillsToLearn._id': skillId, status: 'pending' },
+      { 'receiverData.skillsToTeach._id': chosenSkillId, status: 'pending' }
+    ],
+  });
+
+  // Получаем все уникальные senderId и receiverId из этих запросов
+  let uniqueUserIds = [...new Set(allPendingRequests.map(req => [req.senderId.toString(), req.receiverId.toString()]).flat())];
+
+  // Удаляем все ожидающие запросы этих пользователей
   await SwapRequest.deleteMany({
     $or: [
-      {
-        senderId: senderId,
-        'senderData.skillsToLearn': { $elemMatch: { _id: skillId } },
-        status: 'pending',
-      },
-      {
-        senderId: receiverId,
-        'senderData.skillsToLearn': { $elemMatch: { _id: chosenSkillId } },
-        status: 'pending',
-      },
+      { senderId: { $in: uniqueUserIds } },
+      { receiverId: { $in: uniqueUserIds } },
+      { 'senderData.skillsToLearn._id': skillId },
+      { 'receiverData.skillsToTeach._id': chosenSkillId },
+      { status: 'pending' }
     ],
   });
 };
@@ -173,7 +181,7 @@ exports.deleteSwapRequest = async (data) => {
 // Получает все запросы на обмен текущего пользователя
 exports.getAllSwapRequests = async (currentUserId) => {
   const swapRequests = await SwapRequest.find({ $or: [{ senderId: currentUserId }, { receiverId: currentUserId }] })
-      .sort({ _id: -1 });
+      .sort({ lastActivityAt: -1 });
 
   return swapRequests;
 };

@@ -46,7 +46,11 @@ const swapRequestSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-  acceptAt: Date
+  acceptAt: Date,
+  lastActivityAt: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 module.exports = mongoose.model('SwapRequest', swapRequestSchema);

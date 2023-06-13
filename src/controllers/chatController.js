@@ -87,7 +87,7 @@ const socketChatController  = (io) => {
         }
     
       } catch (error) {
-        // console.log(error);
+        console.log(error);
         socket.emit("error", { message: 'Error sending message', error });
       }
     });
