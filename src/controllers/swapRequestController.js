@@ -27,11 +27,19 @@ const swapRequestController = (io) => {
       try {
         const swapRequest = await swapRequestHelper.acceptSwapRequest(data);
 
+        // Получаем список пользователей, которые затронуты удалением запросов
+        const userIdsAffectedByRequestAccept = await swapRequestHelper.deletePendingSwapRequests(swapRequest.senderId, swapRequest.receiverId, swapRequest.senderData.skillsToLearn[0]._id, chosenSkill._id);
+
         setImmediate(averageValuesUpdater.updateAverageResponseTime, swapRequest.receiverId);
 
-        io.to(swapRequest.receiverId.toString()).emit("swapRequestAccepted", { status: 200, message: "SwapRequest statuses changed on'accepted'" });
-        io.to(swapRequest.senderId.toString()).emit("swapRequestAccepted", { status: 200, message: "SwapRequest statuses changed on'accepted'" });
-      } catch (error) {
+        io.to(swapRequest.receiverId.toString()).emit("swapRequestAccepted", { status: 200, message: "SwapRequest statuses changed on 'accepted'" });
+        io.to(swapRequest.senderId.toString()).emit("swapRequestAccepted", { status: 200, message: "SwapRequest statuses changed on 'accepted'" });
+
+        // Эмитируем события для всех пользователей, чьи запросы на обмен были удалены
+        for (let userId of userIdsAffectedByRequestAccept) {
+          io.to(userId.toString()).emit("pendingSwapRequestsDeleted", { status: 200, message: "Some of your pending swap requests were deleted due to a newly accepted swap request" });
+        }
+        } catch (error) {
         console.error('Error in acceptSwapRequest:', error);
         socket.emit("acceptSwapRequestError", { status: 500, message: 'Server error', error });
       }

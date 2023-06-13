@@ -112,14 +112,12 @@ exports.acceptSwapRequest = async (data) => {
 
   await userHelper.updateUserIsActiveSkillOnTrue(swapRequest.receiverId, chosenSkill._id);
   await userHelper.updateUserIsActiveSkillOnTrue(swapRequest.senderId, swapRequest.senderData.skillsToLearn[0]._id);
-  
-  await this.deletePendingSwapRequests(swapRequest.senderId, swapRequest.receiverId, swapRequest.senderData.skillsToLearn[0]._id, chosenSkill._id);
 
   // Возвращаем уже сохраненный swapRequest
   return swapRequest;
 };
 
-// Удаляет ожидающие запросы на обмен
+// Удаляет ожидающие запросы на обмен и возвращает уникальные ID пользователей, чьи запросы были удалены
 exports.deletePendingSwapRequests = async (senderId, receiverId, skillId, chosenSkillId) => {
   const allPendingRequests = await SwapRequest.find({
     $or: [
@@ -143,6 +141,9 @@ exports.deletePendingSwapRequests = async (senderId, receiverId, skillId, chosen
       { status: 'pending' }
     ],
   });
+
+  // Возвращаем уникальные ID пользователей
+  return uniqueUserIds;
 };
 
 // Отклоняет запрос на обмен
