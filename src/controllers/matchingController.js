@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const User = require('../models/user');
+const SwapRequest = require('../models/swapRequest');
+
 
 const sortUsersBySkillLevel = (users, currentUserSkillLevel, skillId) => {
   const skillLevels = ["beginner", "intermediate", "advanced"];
@@ -67,6 +69,35 @@ const sortMatchingUsers = (matchingUsers, skillId) => {
   });
 };
 
+const checkExistingSwapRequestsForUsers = async (userIds, currentUserId, skillId) => {
+  // В этом запросе используется оператор $in, чтобы найти все SwapRequests, в которых senderId равен currentUserId, а receiverId принадлежит списку userIds.
+  const existingSwapRequests = await SwapRequest.find({
+    senderId: currentUserId,
+    receiverId: { $in: userIds },
+    'senderData.skillsToLearn': { $elemMatch: { _id: skillId } },
+    status: 'pending',
+  });
+
+  // Возвращаемый результат - это массив, который содержит идентификаторы пользователей, для которых существуют запросы на обмен.
+  return existingSwapRequests.map(request => request.receiverId.toString());
+};
+
+const sortUsersWithExistingSwapRequests = async (sortedUsers, currentUserId, skillId) => {
+  const userIds = sortedUsers.map(user => user._id.toString());
+  const usersWithExistingSwapRequests = await checkExistingSwapRequestsForUsers(userIds, currentUserId, skillId);
+
+  sortedUsers.sort((a, b) => {
+    const aHasSwap = usersWithExistingSwapRequests.includes(a._id.toString());
+    const bHasSwap = usersWithExistingSwapRequests.includes(b._id.toString());
+
+    if (aHasSwap && !bHasSwap) return 1;
+    if (!aHasSwap && bHasSwap) return -1;
+    return 0;
+  });
+
+  return sortedUsers;
+};
+
 exports.findMatchingUsers = async (req, res) => {
   try {
     const skillId = req.body.skillId;
@@ -104,7 +135,9 @@ exports.findMatchingUsers = async (req, res) => {
 
     const sortedUsers = sortUsersBySkillLevel(matchingUsers, currentUserSkillLevel, skillId);
 
-    res.status(200).json({ matchingUsers: sortedUsers });
+    const sortedUsersWithSwapInfo = await sortUsersWithExistingSwapRequests(sortedUsers, currentUserId, skillId);
+
+    res.status(200).json({ matchingUsers: sortedUsersWithSwapInfo });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: 'Server error', error });
