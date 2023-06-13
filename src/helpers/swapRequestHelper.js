@@ -17,7 +17,7 @@ exports.checkExistingSwapRequest = async (senderId, receiverId, skillId) => {
 };
 
 // Проверяет, нет ли активных сделок.
-exports.CheckActiveSwapRequest = async (senderId, receiverId) => {
+exports.checkActiveSwapRequest = async (senderId, receiverId) => {
   const activeSwapRequest = await SwapRequest.findOne({
     $or: [
       { senderId: senderId, receiverId: receiverId, status: 'accepted' },
@@ -91,7 +91,7 @@ exports.sendSwapRequest = async (data) => {
   const skillId = receiverData.skillsToLearn._id;
 
   await userHelper.checkUserIsActiveSkill(senderId, skillId);
-  await this.CheckActiveSwapRequest(senderId, receiverId);
+  await this.checkActiveSwapRequest(senderId, receiverId);
   await this.checkExistingSwapRequest(senderId, receiverId, skillId);
 
   const newSwapRequest = await this.createNewSwapRequest(senderId, receiverId, senderData, receiverData);
@@ -185,3 +185,37 @@ exports.getCurrentSwapRequest = async (data) => {
 
   return swapRequest;
 };
+
+
+// ИЗ ЧАТА!!!
+
+
+// функция проверки и получения запроса на обмен
+exports.getAndCheckSwapRequest = async (requestId) => {
+  const swapRequest = await SwapRequest.findOne({ _id: requestId });
+  
+  if (!swapRequest || swapRequest.status !== 'accepted') {
+    throw new Error('Cannot create chat, swap request not found or not accepted.');
+  }
+
+  if (swapRequest.chatId) {
+    throw new Error('Chat is already being created.');
+  }
+
+  return swapRequest;
+}
+
+// функция обновления запроса на обмен
+exports.updateSwapRequest = async (swapRequest, newChatId) => {
+  const updateResult = await SwapRequest.findOneAndUpdate(
+    { _id: swapRequest._id, version: swapRequest.version },
+    { $set: { chatId: newChatId }, $inc: { version: 1 } },
+    { new: true }
+  );
+
+  if (!updateResult) {
+    throw new Error('Failed to update chat ID.');
+  }
+
+  return updateResult;
+}

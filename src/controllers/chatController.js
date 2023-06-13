@@ -3,6 +3,9 @@ const SwapRequest = require('../models/swapRequest');
 const mongoose = require('mongoose');
 const socketAuthMiddleware = require('../middlewares/socketAuthMiddleware');
 
+const chatHelper = require('../helpers/chatHelper');
+const swapRequestHelper = require('../helpers/swapRequestHelper');
+
 const socketChatController  = (io) => {
   io.use(socketAuthMiddleware).on("connection", (socket) => {
     console.log("User connected to chat");
@@ -36,46 +39,14 @@ const socketChatController  = (io) => {
       const { receiverId, senderId, requestId } = data;
     
       try {
-        const swapRequest = await SwapRequest.findOne({ _id: requestId });
+        const swapRequest = await swapRequestHelper.getAndCheckSwapRequest(requestId);
+        const newChat = await chatHelper.createNewChat(receiverId, senderId, requestId);
+        await swapRequestHelper.updateSwapRequest(swapRequest, newChat._id);
     
-        if (!swapRequest || swapRequest.status !== 'accepted') {
-          throw new Error('Cannot create chat, swap request not found or not accepted.');
-        }
+        socket.emit("notCreatedChat");
+        
+        chatHelper.emitNewChat(newChat, socket, io);
     
-        if (swapRequest.chatId) {
-          throw new Error('Chat is already being created.');
-        }
-    
-        const newChat = await Chat.create({
-          participants: [receiverId, senderId],
-          swapRequestIds: [requestId],
-          messages: [{
-            sender: senderId,
-            content: `Привет, я хочу обменяться с тобой навыками!`,
-          }],
-        });
-    
-        const updateResult = await SwapRequest.findOneAndUpdate(
-          { _id: requestId, version: swapRequest.version },
-          { $set: { chatId: newChat._id }, $inc: { version: 1 } },
-          { new: true }
-        );
-    
-        if (!updateResult) {
-          throw new Error('Failed to update chat ID.');
-        }
-
-        socket.emit("notCreatingChat");
-    
-        const participants = newChat.participants.map(participant => participant.toString());
-    
-        participants.forEach(participant => {
-          if (participant !== socket.userId) {
-            io.to(participant).emit("newChat", newChat);
-          }
-        });
-    
-        socket.emit("chat", newChat);
       } catch (error) {
         socket.emit("error", { message: 'Error creating chat', error });
       }
@@ -107,6 +78,7 @@ const socketChatController  = (io) => {
         }
     
         chat.messages.push(newMessage);
+        chat.lastActivityAt = new Date();
     
         await chat.save();
     
@@ -142,7 +114,8 @@ const socketChatController  = (io) => {
     socket.on("fetchAllChats", async () => {
       try {
         const currentUserId = socket.userId;
-        const chats = await Chat.find({ participants: { $in: [currentUserId] } });
+        const chats = await Chat.find({ participants: { $in: [currentUserId] } }).sort({ lastActivityAt: -1 });
+
         socket.emit("allChats", chats);
       } catch (error) {
         console.error('Error getting all chats:', error);
