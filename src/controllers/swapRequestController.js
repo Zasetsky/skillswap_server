@@ -28,7 +28,7 @@ const swapRequestController = (io) => {
         const swapRequest = await swapRequestHelper.acceptSwapRequest(data);
 
         // Получаем список пользователей, которые затронуты удалением запросов
-        const userIdsAffectedByRequestAccept = await swapRequestHelper.deletePendingSwapRequests(swapRequest.senderId, swapRequest.receiverId, swapRequest.senderData.skillsToLearn[0]._id, chosenSkill._id);
+        const userIdsAffectedByRequestAccept = await swapRequestHelper.deletePendingSwapRequests(swapRequest.senderId, swapRequest.receiverId, swapRequest.senderData.skillsToLearn[0]._id, data.chosenSkill._id);
 
         setImmediate(averageValuesUpdater.updateAverageResponseTime, swapRequest.receiverId);
 

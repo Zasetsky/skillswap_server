@@ -120,11 +120,20 @@ exports.acceptSwapRequest = async (data) => {
 // Удаляет ожидающие запросы на обмен и возвращает уникальные ID пользователей, чьи запросы были удалены
 exports.deletePendingSwapRequests = async (senderId, receiverId, skillId, chosenSkillId) => {
   const allPendingRequests = await SwapRequest.find({
-    $or: [
-      { senderId: senderId, status: 'pending' },
-      { receiverId: receiverId, status: 'pending' },
-      { 'senderData.skillsToLearn._id': skillId, status: 'pending' },
-      { 'receiverData.skillsToTeach._id': chosenSkillId, status: 'pending' }
+    $and: [
+      {
+        $or: [
+          { senderId: senderId },
+          { receiverId: receiverId }
+        ]
+      },
+      {
+        $or: [
+          { 'senderData.skillsToLearn._id': skillId },
+          { 'receiverData.skillsToTeach._id': chosenSkillId }
+        ]
+      },
+      { status: 'pending' },
     ],
   });
 
@@ -133,12 +142,20 @@ exports.deletePendingSwapRequests = async (senderId, receiverId, skillId, chosen
 
   // Удаляем все ожидающие запросы этих пользователей
   await SwapRequest.deleteMany({
-    $or: [
-      { senderId: { $in: uniqueUserIds } },
-      { receiverId: { $in: uniqueUserIds } },
-      { 'senderData.skillsToLearn._id': skillId },
-      { 'receiverData.skillsToTeach._id': chosenSkillId },
-      { status: 'pending' }
+    $and: [
+      {
+        $or: [
+          { senderId: { $in: uniqueUserIds } },
+          { receiverId: { $in: uniqueUserIds } }
+        ]
+      },
+      {
+        $or: [
+          { 'senderData.skillsToLearn._id': skillId },
+          { 'receiverData.skillsToTeach._id': chosenSkillId }
+        ]
+      },
+      { status: 'pending' },
     ],
   });
 
