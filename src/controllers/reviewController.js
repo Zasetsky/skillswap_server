@@ -72,3 +72,20 @@ exports.getCurrentDealReviews = async (req, res) => {
     res.status(500).json({ message: 'Error fetching reviews for current deal', error });
   }
 };
+
+exports.getAllUserReviews = async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    const reviews = await Review.find({
+      $or: [
+        { receiver: userId },
+        { sender: userId }
+      ]
+    });
+
+    res.status(200).json({ message: 'Reviews for user fetched successfully', reviews });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching reviews for current user', error });
+  }
+};

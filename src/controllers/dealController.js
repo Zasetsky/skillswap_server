@@ -297,6 +297,7 @@ const DealController = (io) => {
     socket.on("getAllDeals", async () => {
       try {
         const deals = await Deal.find({ participants: socket.userId });
+
         socket.emit("allDeals", deals);
       } catch (error) {
         socket.emit("error", { message: "Error fetching all deals" });

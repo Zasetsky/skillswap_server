@@ -16,19 +16,19 @@ exports.checkExistingSwapRequest = async (senderId, receiverId, skillId) => {
   }
 };
 
-// Проверяет, нет ли активных сделок.
-exports.checkActiveSwapRequest = async (senderId, receiverId) => {
-  const activeSwapRequest = await SwapRequest.findOne({
-    $or: [
-      { senderId: senderId, receiverId: receiverId, status: 'accepted' },
-      { senderId: receiverId, receiverId: senderId, status: 'accepted' }
-    ]
-  });
+// // Проверяет, нет ли активных сделок.
+// exports.checkActiveSwapRequest = async (senderId, receiverId) => {
+//   const activeSwapRequest = await SwapRequest.findOne({
+//     $or: [
+//       { senderId: senderId, receiverId: receiverId, status: 'accepted' },
+//       { senderId: receiverId, receiverId: senderId, status: 'accepted' }
+//     ]
+//   });
 
-  if (activeSwapRequest) {
-    throw new Error('An active swap request already exists between these users');
-  }
-};
+//   if (activeSwapRequest) {
+//     throw new Error('An active swap request already exists between these users');
+//   }
+// };
 
 // Создаёт новый запрос на обмен
 exports.createNewSwapRequest = async (senderId, receiverId, senderData, receiverData) => {
@@ -91,7 +91,6 @@ exports.sendSwapRequest = async (data) => {
   const skillId = receiverData.skillsToLearn._id;
 
   await userHelper.checkUserIsActiveSkill(senderId, skillId);
-  await this.checkActiveSwapRequest(senderId, receiverId);
   await this.checkExistingSwapRequest(senderId, receiverId, skillId);
 
   const newSwapRequest = await this.createNewSwapRequest(senderId, receiverId, senderData, receiverData);
