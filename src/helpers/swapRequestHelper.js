@@ -16,19 +16,20 @@ exports.checkExistingSwapRequest = async (senderId, receiverId, skillId) => {
   }
 };
 
-// // Проверяет, нет ли активных сделок.
-// exports.checkActiveSwapRequest = async (senderId, receiverId) => {
-//   const activeSwapRequest = await SwapRequest.findOne({
-//     $or: [
-//       { senderId: senderId, receiverId: receiverId, status: 'accepted' },
-//       { senderId: receiverId, receiverId: senderId, status: 'accepted' }
-//     ]
-//   });
+// Обновляет активность в запросе
+exports.updateLastActivity = async (swapRequestId) => {
+  const swapRequest = await SwapRequest.findById(swapRequestId);
 
-//   if (activeSwapRequest) {
-//     throw new Error('An active swap request already exists between these users');
-//   }
-// };
+  if (!swapRequest) {
+    throw new Error("Error updateLastActivity: request not found");
+  }
+
+  swapRequest.lastActivityAt = Date.now();
+
+  await swapRequest.save();
+
+  return swapRequest;
+};
 
 // Создаёт новый запрос на обмен
 exports.createNewSwapRequest = async (senderId, receiverId, senderData, receiverData) => {

@@ -1,5 +1,6 @@
 const Review = require('../models/review');
 const ratingUpdater = require('../helpers/ratingUpdater');
+const swapRequestHelper = require('../helpers/swapRequestHelper');
 
 const socketAuthMiddleware = require('../middlewares/socketAuthMiddleware');
 
@@ -17,6 +18,7 @@ exports.createReview = (io) => {
         }
     
         const review = new Review(data);
+        await swapRequestHelper.updateLastActivity(deal.swapRequestId);
         await review.save();
 
         const createdReview = await Review.findById(review._id).populate('sender');

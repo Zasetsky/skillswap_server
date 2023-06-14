@@ -4,6 +4,7 @@ const Chat = require('../models/chat');
 const meetingDetails = require('../helpers/meetingDetails');
 const SwapRequest = require('../models/swapRequest');
 const socketAuthMiddleware = require('../middlewares/socketAuthMiddleware');
+const swapRequestHelper = require('../helpers/swapRequestHelper');
 
 
 const DealController = (io) => {
@@ -87,9 +88,9 @@ const DealController = (io) => {
         if (!deal) {
           return socket.emit("error", { message: "Deal not found" });
         }
-    
+
         deal.sender = socket.userId;
-    
+
         const updateForms = () => {
           if (!deal.form.isCompleted) {
             deal.update.form = formData1;
@@ -98,10 +99,10 @@ const DealController = (io) => {
             deal.update.form2 = formData2;
           }
         };
-    
+
         const form1Matches = Object.keys(formData1).every(field => formData1[field] === deal.form[field]);
         const form2Matches = Object.keys(formData2).every(field => formData2[field] === deal.form2[field]);
-    
+
         if (deal.status === "not_started") {
           deal.status = "pending";
           if (!deal.form.isCompleted) {
@@ -112,7 +113,7 @@ const DealController = (io) => {
           }
         } else if (deal.status === "pending" || deal.status === "pending_update") {
           deal.status = "pending_update";
-    
+
           if (!form1Matches || !form2Matches) {
             if (!deal.update.form.meetingDate && !deal.update.form.meetingTime && !deal.update.form.meetingDuration &&
                 !deal.update.form2.meetingDate && !deal.update.form2.meetingTime && !deal.update.form2.meetingDuration) {
@@ -128,8 +129,10 @@ const DealController = (io) => {
             }
           }
         }
-    
+
         await deal.save();
+        await swapRequestHelper.updateLastActivity(deal.swapRequestId);
+
         for (let participant of deal.participants) {
           io.to(participant.toString()).emit("deal", deal);
         }
@@ -188,7 +191,8 @@ const DealController = (io) => {
         }
     
         await deal.save();
-    
+        await swapRequestHelper.updateLastActivity(deal.swapRequestId);
+
         for (let participant of deal.participants) {
           io.to(participant.toString()).emit("deal", deal);
         }
@@ -242,7 +246,8 @@ const DealController = (io) => {
         });
         
         const updatedDeal = await Deal.findById(dealId);
-        const swapRequest = await SwapRequest.findById(updatedDeal.swapRequestId);
+
+        const swapRequest = await swapRequestHelper.updateLastActivity(updatedDeal.swapRequestId);
 
         meetingDetails.sendMeetingDetails(updatedDeal, updatedDeal.chatId, swapRequest, io);
 
@@ -281,6 +286,7 @@ const DealController = (io) => {
 
         // Восстанавливаем статус сделки
         deal.status = deal.previousStatus;
+        await swapRequestHelper.updateLastActivity(deal.swapRequestId);
         await deal.save();
 
         for (let participant of deal.participants) {
@@ -352,7 +358,7 @@ const DealController = (io) => {
         deal.createdAt = new Date();
     
         await deal.save();
-        const swapRequest = await SwapRequest.findById(deal.swapRequestId);
+        const swapRequest = await swapRequestHelper.updateLastActivity(deal.swapRequestId);
 
         meetingDetails.sendMeetingDetails(deal, deal.chatId, swapRequest, io);
 
@@ -384,6 +390,7 @@ const DealController = (io) => {
         deal.cancellation.sender = socket.userId;
         deal.cancellation = { reason, status: "true", timestamp};
 
+        await swapRequestHelper.updateLastActivity(deal.swapRequestId);
         await deal.save();
 
         for (let participant of deal.participants) {
@@ -465,6 +472,7 @@ const DealController = (io) => {
         }
 
         deal.cancellation.status = "false";
+        await swapRequestHelper.updateLastActivity(deal.swapRequestId);
         await deal.save();
 
         for (let participant of deal.participants) {
@@ -509,7 +517,8 @@ const DealController = (io) => {
 
         deal.sender = socket.userId;
         deal.continuation.status = "true";
-    
+
+        await swapRequestHelper.updateLastActivity(deal.swapRequestId);
         await deal.save();
 
         for (let participant of deal.participants) {
@@ -631,6 +640,7 @@ const DealController = (io) => {
         }
     
         deal.continuation.status = "false";
+        await swapRequestHelper.updateLastActivity(deal.swapRequestId);
         await deal.save();
 
         for (let participant of deal.participants) {
