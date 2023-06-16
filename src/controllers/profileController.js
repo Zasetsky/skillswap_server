@@ -1,5 +1,4 @@
 const User = require('../models/user');
-const fs = require('fs');
 const path = require('path');
 
 // Обновление имени, фамилии и био
@@ -57,68 +56,88 @@ exports.getProfile = async (req, res) => {
 // Добавление аватарки
 
 exports.updateAvatar = async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).send({ message: 'No image file was provided.' });
-      }
-  
-      const userId = req.userId;
-  
-      if (!userId) {
-        return res.status(401).send({ message: 'Unauthorized.' });
-      }
-  
-      const avatarUrl = `http://${req.get('host')}/assets/images/avatars/${req.file.filename}`;
-  
-      await User.findByIdAndUpdate(userId, { avatar: avatarUrl });
-  
-      res.send({ message: 'Avatar updated successfully.', avatar: avatarUrl });
-    } catch (error) {
-      res.status(500).send({ message: 'Error updating avatar.', error });
+  try {
+    if (!req.file) {
+      return res.status(400).send({ message: 'No image file was provided.' });
     }
-  };
+
+    const userId = req.userId;
+
+    if (!userId) {
+      return res.status(401).send({ message: 'Unauthorized.' });
+    }
+
+    const avatarUrl = req.file.location;
+
+    const user = await User.findById(userId);
+    user.avatar = avatarUrl;
+    user.allAvatars.push(avatarUrl);
+    await user.save();
+
+    res.send({ message: 'Avatar updated successfully.', avatar: avatarUrl });
+  } catch (error) {
+    res.status(500).send({ message: 'Error updating avatar.', error });
+  }
+};
+
+  // Добавление баннера
+
+exports.updateBanner = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    user.banner = req.file.location;
+    user.bannerPosition = req.body.bannerPosition;
+    user.allBanners.push(req.file.location);
+    
+    await user.save();
+
+    res.json(user);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
   
   // Удаление аватарки
 
-  exports.deleteAvatar = async (req, res) => {
-    try {
-      const userId = req.userId;
-      const user = await User.findById(userId);
-  
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-  
-      if (user.avatar) {
-        const avatarPath = path.join(
-          __dirname,
-          '..',
-          '..',
-          'public',
-          'assets',
-          'images',
-          'avatars',
-          path.basename(user.avatar)
-        );
-        fs.unlink(avatarPath, (err) => {
-          if (err) {
-            console.error(err);
-            return res.status(500).json({ message: 'Error deleting avatar file' });
-          }
-        });
-  
-        user.avatar = null;
-        await user.save();
-  
-        return res.status(200).json({ message: 'Avatar deleted successfully' });
-      }
-  
-      res.status(404).json({ message: 'Avatar not found' });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error' });
+exports.deleteAvatar = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
-  };
+
+    if (user.avatar) {
+      const params = {
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: path.basename(user.avatar),
+      };
+
+      s3.deleteObject(params, async function(err, data) {
+        if (err) {
+          console.log(err, err.stack);
+          return res.status(500).json({ message: 'Error deleting avatar file' });
+        } else {
+          user.avatar = null;
+          await user.save();
+
+          return res.status(200).json({ message: 'Avatar deleted successfully' });
+        }
+      });
+    } else {
+      res.status(404).json({ message: 'Avatar not found' });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
 
   // Обновление настройки доступности
 

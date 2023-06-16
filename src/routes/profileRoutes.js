@@ -10,13 +10,15 @@ const uploadMiddleware = require('../middlewares/uploadMiddleware');
 router.put('/update', authMiddleware, profileController.updateProfile);
 
 // Запрос информации о пользователе
-router.get('/current/:userId', profileController.getProfile);
+router.get('/current/:userId', authMiddleware, profileController.getProfile);
 
 // Обновление аватара
-router.post('/avatar', authMiddleware, uploadMiddleware.single('avatar'), profileController.updateAvatar);
+router.post('/avatar', authMiddleware, uploadMiddleware, profileController.updateAvatar);
 
 // Удаление аватара
 router.delete('/avatar', authMiddleware, profileController.deleteAvatar);
+
+router.put('/banner', authMiddleware, uploadMiddleware, profileController.updateBanner);
 
 router.post('/isPreSetup', authMiddleware, profileController.isPreSetupToggle);
 
