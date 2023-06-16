@@ -1,5 +1,15 @@
 const User = require('../models/user');
 const jwt = require('jsonwebtoken');
+const AWS = require('aws-sdk');
+require('dotenv').config();
+
+AWS.config.update({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: process.env.AWS_REGION,
+});
+
+const s3 = new AWS.S3();
 
 // Регистрация
 
@@ -46,6 +56,16 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: 'Invalid password' });
     }
 
+    if (user.banner) {
+      let params = {Bucket: process.env.AWS_BUCKET_NAME, Key: user.banner, Expires: 60};
+      user.banner = s3.getSignedUrl('getObject', params);
+    }
+
+    if (user.avatar) {
+      let params = {Bucket: process.env.AWS_BUCKET_NAME, Key: user.avatar, Expires: 60};
+      user.avatar = s3.getSignedUrl('getObject', params);
+    }
+
     const payload = { userId: user.id };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
@@ -60,7 +80,6 @@ exports.login = async (req, res) => {
   }
 };
 
-
 // Автовход
 
 exports.getUserInfo = async (req, res) => {
@@ -69,6 +88,17 @@ exports.getUserInfo = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
+
+    if (user.banner) {
+      let params = {Bucket: process.env.AWS_BUCKET_NAME, Key: user.banner, Expires: 60};
+      user.banner = s3.getSignedUrl('getObject', params);
+    }
+
+    if (user.avatar) {
+      let params = {Bucket: process.env.AWS_BUCKET_NAME, Key: user.avatar, Expires: 60};
+      user.avatar = s3.getSignedUrl('getObject', params);
+    }
+
     res.json({ user });
   } catch (error) {
     console.error('Error during getUserInfo:', error);

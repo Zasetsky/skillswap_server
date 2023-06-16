@@ -38,7 +38,7 @@ const uploadMiddleware = function (req, res, next) {
     });
 
     upload.on('uploaded', function (details) {
-      req.file.location = details.Location;
+      req.file.location = details.Key;
       next();
     });
 
