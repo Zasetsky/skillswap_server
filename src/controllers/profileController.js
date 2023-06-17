@@ -55,10 +55,11 @@ exports.getProfile = async (req, res) => {
 
 // Добавление аватарки
 
-exports.updateAvatar = async (req, res) => {
+exports.updateAvatars = async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).send({ message: 'No image file was provided.' });
+    if (!req.files || !req.files.original || !req.files.cropped || req.files.original.length !== 1 || req.files.cropped.length !== 1) {
+      console.log(req.files);
+      return res.status(400).send({ message: 'Two image files were not provided.' });
     }
 
     const userId = req.userId;
@@ -67,16 +68,22 @@ exports.updateAvatar = async (req, res) => {
       return res.status(401).send({ message: 'Unauthorized.' });
     }
 
-    const avatarUrl = req.file.location;
+    const originalAvatarUrl = req.files.original[0].location;
+    const croppedAvatarUrl = req.files.cropped[0].location;
 
     const user = await User.findById(userId);
-    user.avatar = avatarUrl;
-    user.allAvatars.push(avatarUrl);
+    user.avatar = croppedAvatarUrl;
+    user.allAvatars.push(originalAvatarUrl);
     await user.save();
 
-    res.send({ message: 'Avatar updated successfully.', avatar: avatarUrl });
+    res.send({ 
+        message: 'Avatars updated successfully.', 
+        avatar: croppedAvatarUrl,
+        allAvatars: user.allAvatars 
+    });
   } catch (error) {
-    res.status(500).send({ message: 'Error updating avatar.', error });
+    console.error('Error in updateAvatars:', error);
+    res.status(500).send({ message: 'Error updating avatars.', error });
   }
 };
 

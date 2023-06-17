@@ -13,12 +13,12 @@ router.put('/update', authMiddleware, profileController.updateProfile);
 router.get('/current/:userId', authMiddleware, profileController.getProfile);
 
 // Обновление аватара
-router.post('/avatar', authMiddleware, uploadMiddleware, profileController.updateAvatar);
+router.post('/avatars', authMiddleware, (req, res, next) => uploadMiddleware(['original', 'cropped'])(req, res, next), profileController.updateAvatars);
 
 // Удаление аватара
 router.delete('/avatar', authMiddleware, profileController.deleteAvatar);
 
-router.put('/banner', authMiddleware, uploadMiddleware, profileController.updateBanner);
+router.put('/banner', authMiddleware, (req, res, next) => uploadMiddleware('banner')(req, res, next), profileController.updateBanner);
 
 router.post('/isPreSetup', authMiddleware, profileController.isPreSetupToggle);
 
