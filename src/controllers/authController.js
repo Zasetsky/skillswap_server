@@ -66,6 +66,16 @@ exports.login = async (req, res) => {
       user.avatar = s3.getSignedUrl('getObject', params);
     }
 
+    user.allAvatars = user.allAvatars.map(avatar => {
+      let params = {Bucket: process.env.AWS_BUCKET_NAME, Key: avatar, Expires: 60};
+      return s3.getSignedUrl('getObject', params);
+    });
+    
+    user.allBanners = user.allBanners.map(banner => {
+      let params = {Bucket: process.env.AWS_BUCKET_NAME, Key: banner, Expires: 60};
+      return s3.getSignedUrl('getObject', params);
+    });
+
     const payload = { userId: user.id };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
@@ -99,9 +109,20 @@ exports.getUserInfo = async (req, res) => {
       user.avatar = s3.getSignedUrl('getObject', params);
     }
 
+    user.allAvatars = user.allAvatars.map(avatar => {
+      let params = {Bucket: process.env.AWS_BUCKET_NAME, Key: avatar, Expires: 60};
+      return s3.getSignedUrl('getObject', params);
+    });
+    
+    user.allBanners = user.allBanners.map(banner => {
+      let params = {Bucket: process.env.AWS_BUCKET_NAME, Key: banner, Expires: 60};
+      return s3.getSignedUrl('getObject', params);
+    });
+
     res.json({ user });
   } catch (error) {
     console.error('Error during getUserInfo:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
+
